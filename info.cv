@@ -1,7 +1,12 @@
 <topic>
-<title> Info Test </title>
-<item> Here is some info. </item>
-<item> Second piece of info. </item>
+<title> Technical Skills </title>
+<item> C++, Python, Haskell, \LaTeX</item> 
+<item> Sci-Kit Learn, TensorFlow </item>
+</topic>
+
+<topic>
+<title> Tools </title>
+<item> Vim, GNU Debugger </item>
 </topic>
 
 <topic>

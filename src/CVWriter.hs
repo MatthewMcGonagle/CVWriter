@@ -17,6 +17,8 @@ data Topic = Topic {title :: String, items :: [String]}
 data CV = CV {topics :: [Topic]}
     deriving (Show)
 
+data LatexEnv = Tabular | Section
+
 lBracket :: Prim.Parsec [Char] st Char 
 lBracket = char '<'
 
@@ -47,7 +49,7 @@ topicItem = do
 topicTitle :: Prim.Parsec [Char] st String
 topicTitle = do
              try (lTag "title")
-                <?> "lTag <title>"
+                 <?> "lTag <title>"
              title <- many $ noneOf "<"
              try (rTag "title")
                  <?> "rTag </title>"
@@ -66,11 +68,11 @@ topic = do
         return $ Topic {title = title, items = rCol}
 
 topicList :: Prim.Parsec [Char] st [Topic]
-topicList = do
-            endBy topic spaces
-
+topicList = endBy topic spaces 
+            
 cvfile :: Prim.Parsec String st CV
 cvfile = do
+         spaces
          topics <- topicList
          spaces
          eof
@@ -90,11 +92,15 @@ cvToLatex :: CV -> String
 cvToLatex x = latexHeader ++ body ++ latexEnd
     where body = concat $ map topicToLatex (topics x)
 
+beginTex :: LatexEnv -> String
+beginTex Tabular = "\\begin{tabular}{p{2 cm}p{4 cm}}\n"
+beginTex _ = "" 
+
 topicToLatex :: Topic -> String
-topicToLatex Topic {title = t, items = []} = "\\begin{tabular}{ll}\n" 
+topicToLatex Topic {title = t, items = []} = (beginTex Tabular)
     ++ t 
     ++ " & \n\\end{tabular}" 
-topicToLatex Topic {title = t, items = i : is} = "\\begin{tabular}{ll}\n"
+topicToLatex Topic {title = t, items = i : is} = (beginTex Tabular) 
     ++ t
     ++ " & " ++ i ++ "\\\\\n"
     ++ topicString
