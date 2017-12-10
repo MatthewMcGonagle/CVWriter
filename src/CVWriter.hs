@@ -5,6 +5,7 @@ module CVWriter
 , CV
 , Topic
 , cvToLatex
+, cvToMarkdown
 ) where
 
 import Text.ParserCombinators.Parsec
@@ -18,6 +19,10 @@ data CV = CV {topics :: [Topic]}
     deriving (Show)
 
 data LatexEnv = Tabular | Section
+
+------------------------------
+-- *.cv Text Parsers
+------------------------------
 
 lBracket :: Prim.Parsec [Char] st Char 
 lBracket = char '<'
@@ -88,6 +93,10 @@ latexHeader = "\\documentclass{article}\n\n"
 latexEnd :: String
 latexEnd = "\\end{document}\n"
 
+------------------------------
+-- CV to LaTeX file converters.
+------------------------------
+
 cvToLatex :: CV -> String
 cvToLatex x = latexHeader ++ body ++ latexEnd
     where body = concat $ map topicToLatex (topics x)
@@ -103,6 +112,50 @@ topicToLatex Topic {title = t, items = []} = (beginTex Tabular)
 topicToLatex Topic {title = t, items = i : is} = (beginTex Tabular) 
     ++ t
     ++ " & " ++ i ++ "\\\\\n"
-    ++ topicString
+    ++ otherRows 
     ++ "\\end{tabular}\n\n" 
-    where topicString = concat $ map (\x -> " & " ++ x ++ "\\\\\n") is
+    where otherRows = concat $ map (\x -> " & " ++ x ++ "\\\\\n") is
+
+------------------------------------
+-- CV to Jekyll Markdown Converters.
+------------------------------------
+
+cvToMarkdown :: CV -> String
+cvToMarkdown x = markdownHeader ++ downloadLink ++ body ++ downloadLink
+    where body =    "<table>\n"
+                 ++ (concat $ map topicToMarkdown (topics x))
+                 ++ "</table>\n"
+
+markdownHeader :: String
+markdownHeader =    "---\n"
+                 ++ "layout: default\n"
+                 ++ "title: Matthew McGonagle's CV\n"
+                 ++ "---\n\n"
+                 ++ "<h1>{{page . title}}</h1>\n"
+
+downloadLink :: String
+downloadLink = 
+    " <p> <a href = \"{{site . url}}/cv/MatthewMcGonagleCV.pdf\">Click here</a> if you wish to view my CV as a pdf.</p>\n"
+
+topicToMarkdown :: Topic -> String
+topicToMarkdown Topic {title = t, items = []} =
+       "    <tr>\n"
+    ++ "        <th>" ++ t ++ "</th>\n" 
+    ++ "    </tr>\n"
+
+topicToMarkdown Topic {title = t, items =  i : is} = 
+       "    <tr>\n"
+    ++ "        <th>" ++ t ++ "</th>\n" 
+    ++ "        <td>" ++ i ++ "</td?\n"
+    ++ "    </tr>\n"
+    ++ otherRows
+    where otherRows = concat $ map(\x ->
+               "   <tr>\n"
+            ++ "        <td></td>\n"
+            ++ "        <td>" ++ x ++ "</td>\n" 
+            ++ "   </tr>\n"
+            )
+            is
+
+    
+
