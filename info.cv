@@ -1,16 +1,31 @@
-<topic>
+<topic1>
 <title> Technical Skills </title>
-<item> C++, Python, Haskell, \LaTeX</item> 
-<item> Sci-Kit Learn, TensorFlow </item>
-</topic>
+<item> C++, Python, Haskell, \LaTeX, 
+Sci-Kit Learn, TensorFlow </item>
+</topic1>
 
-<topic>
+<topic1>
 <title> Tools </title>
 <item> Vim, GNU Debugger </item>
-</topic>
+</topic1>
 
-<topic>
+
+<topic2>
+<title> Education </title>
+<item> 2008 - 2016 </item>
+<item> Ph.D., Mathematics, Johns Hopkins University </item>
+
+<item> 2004 - 2008 </item>
+<item> Dual Degree </item>
+<item></item>
+<item> B.S., Mathematics, Univeseristy of Maryland </item>
+<item> </item>
+<item> B.S., Physics, University of Maryland </item>
+
+</topic2>
+ 
+<topic1>
 <title> Topic 2 </title>
 <item> Info, info everywhere. </item>
 <item> More, more info. </item>
-</topic>
+</topic1>
