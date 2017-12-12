@@ -50,7 +50,7 @@ topicItem category = do
                          <?> "lTag <" ++ tagString ++ ">"
                      item <- many $ noneOf "<" 
                      try (rTag tagString) 
-                         <?> "rTag </item" ++ tagString ++ ">"
+                         <?> "rTag </" ++ tagString ++ ">"
                      return item 
 
 topicTitle :: Prim.Parsec [Char] st String
@@ -142,7 +142,7 @@ tabTex :: String
 tabTex = "    "
 
 beginTex :: LatexEnv -> String
-beginTex Tabular1 = "\\begin{tabular}{lll}\n"
+beginTex Tabular1 = "\\begin{tabular}{llp{7cm}}\n"
 beginTex Tabular2 = beginTex Tabular1 
 beginTex _ = "" 
 

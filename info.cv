@@ -5,28 +5,48 @@
 
 <topic1>
 <title> Tools </title>
-<item> Vim, GNU Debugger, Inskcape, GNU IMP </item>
+<item> Vim, Git, GNU Debugger, Jekyll, Inskcape, GNU IMP </item>
 </topic1>
 
 <topic2>
 <title> Portfolio </title>
 <item1> GitHub Profile</item1>
 <item2> MatthewMcGonagle</item2>
-<item2>https://github.com/MatthewMcGonagle</item2>
+<item2> https://github.com/MatthewMcGonagle</item2>
+
+<item1> CVWriter </item1>
+<item2> Haskell </item2>
+<item2> https://github.com/MatthewMcGonagle /CVWriter</item2>
+<item2> Takes XML style sheet with info for CV and outputs it to two formats: </item2>
+<item2> 1. A LaTeX .tex file to be converted to pdf. </item2>
+<item2> 2. A Jekyll compatible .html file. </item2>
+
+<item1> Quadratic Field Extension </item1>
+<item2> C++ </item2>
+<item2> https://github.com/QuadraticFieldExtension </item2>
+<item2> Library to allow infinite precision arithmetic for numbers made of any number of square roots, such as sqrt(1 + sqrt(2)).</item2>
+
+<item1> Hilbert Draw </item1>
+<item2> Python </item2>
+<item2> https://github.com/MatthewMcGonagle /HilbertDraw</item2>
+<item2> Library to take a picture, and draw it using Hilbert fractal-like curves.</item2>
 </topic2>
 
 <topic2>
 <title> Education </title>
 <item1> 2010 - 2014 </item1>
-<item2> Ph.D., Mathematics, Johns Hopkins University </item2>
+<item2> Ph.D., Mathematics</item2>
+<item2> Johns Hopkins University </item2>
 
 <item1> 2008 - 2010 </item1>
-<item2> M.A., Mathematics, Johns Hopkins University </item2>
+<item2> M.A., Mathematics</item2>
+<item2> Johns Hopkins University </item2>
 
 <item1> 2004 - 2008 </item1>
-<item2> Dual Degree </item2>
-<item2> B.S., Mathematics, Univeseristy of Maryland </item2>
-<item2> B.S., Physics, University of Maryland </item2>
+<item2> Dual Degrees at University of Maryland</item2>
+<item2> B.S., Mathematics </item2>
+<item2> B.S., Physics</item2>
 
 </topic2>
+
  
