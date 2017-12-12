@@ -5,29 +5,28 @@
 
 <topic1>
 <title> Tools </title>
-<item> Vim, GNU Debugger </item>
+<item> Vim, GNU Debugger, Inskcape, GNU IMP </item>
 </topic1>
 
+<topic2>
+<title> Portfolio </title>
+<item1> GitHub Profile</item1>
+<item2> MatthewMcGonagle</item2>
+<item2>https://github.com/MatthewMcGonagle</item2>
+</topic2>
 
 <topic2>
 <title> Education </title>
-<item> 2010 - 2014 </item>
-<item> Ph.D., Mathematics, Johns Hopkins University </item>
+<item1> 2010 - 2014 </item1>
+<item2> Ph.D., Mathematics, Johns Hopkins University </item2>
 
-<item> 2008 - 2010 </item>
-<item> M.A., Mathematics, Johns Hopkins University </item>
+<item1> 2008 - 2010 </item1>
+<item2> M.A., Mathematics, Johns Hopkins University </item2>
 
-<item> 2004 - 2008 </item>
-<item> Dual Degree </item>
-<item></item>
-<item> B.S., Mathematics, Univeseristy of Maryland </item>
-<item> </item>
-<item> B.S., Physics, University of Maryland </item>
+<item1> 2004 - 2008 </item1>
+<item2> Dual Degree </item2>
+<item2> B.S., Mathematics, Univeseristy of Maryland </item2>
+<item2> B.S., Physics, University of Maryland </item2>
 
 </topic2>
  
-<topic1>
-<title> Topic 2 </title>
-<item> Info, info everywhere. </item>
-<item> More, more info. </item>
-</topic1>

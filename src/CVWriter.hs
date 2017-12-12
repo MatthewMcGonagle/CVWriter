@@ -13,7 +13,7 @@ import qualified Text.Parsec.Prim as Prim
 import Text.Parsec.Combinator
 
 data Topic =   Topic1 {title :: String, items :: [String]}
-             | Topic2 {title :: String, itemPairs :: [(String, String)]} 
+             | Topic2 {title :: String, itemPairs :: [(String, [String])]} 
     deriving (Show)
 
 data CV = CV {topics :: [Topic]}
@@ -43,14 +43,15 @@ lTag name = do
 rTag :: String -> Prim.Parsec [Char] st String
 rTag name = lTag $ "/" ++ name 
 
-topicItem :: Prim.Parsec [Char] st String
-topicItem = do
-            try (lTag "item")
-                <?> "lTag <item>"
-            item <- many $ noneOf "<" 
-            try (rTag "item")
-                <?> "rTag </item>"
-            return item 
+topicItem :: String -> Prim.Parsec [Char] st String
+topicItem category = do
+                     let tagString = "item" ++ category
+                     try (lTag tagString)
+                         <?> "lTag <" ++ tagString ++ ">"
+                     item <- many $ noneOf "<" 
+                     try (rTag tagString) 
+                         <?> "rTag </item" ++ tagString ++ ">"
+                     return item 
 
 topicTitle :: Prim.Parsec [Char] st String
 topicTitle = do
@@ -68,10 +69,17 @@ topic1 = do
          spaces
          title <- topicTitle
          spaces
-         rCol <- endBy topicItem spaces
+         rCol <- endBy (topicItem "") spaces
          try (rTag "topic1")
              <?> "rTag </topic1>"
          return $ Topic1 {title = title, items = rCol}
+
+itemPair :: Prim.Parsec [Char] st (String, [String])
+itemPair = do
+           first <- topicItem "1"
+           spaces
+           second <- endBy (topicItem "2") spaces
+           return (first, second) 
 
 topic2 :: Prim.Parsec [Char] st Topic
 topic2 = do
@@ -80,11 +88,6 @@ topic2 = do
          spaces
          title <- topicTitle
          spaces
-         let itemPair = do
-                        left <- topicItem
-                        spaces
-                        right <- topicItem
-                        return (left, right)
          itemPairs <- endBy itemPair spaces
          try (rTag "topic2")
              <?> "rTag </topic2>"
@@ -113,6 +116,14 @@ latexEnd :: String
 latexEnd = "\\end{document}\n"
 
 ------------------------------
+-- General Formatting Stuff
+------------------------------
+
+myTab :: Int -> String
+myTab n = concat $ replicate n singleTab
+    where singleTab = "    "
+
+------------------------------
 -- CV to LaTeX file converters.
 ------------------------------
 
@@ -125,7 +136,10 @@ cvToLatex x = latexHeader
     where body = concat $ map (\x -> topicToLatex x ++ topicSep) (topics x)
 
 topicSep :: String
-topicSep = "\\midrule"
+topicSep = myTab 1 ++ "\\midrule\n"
+
+tabTex :: String
+tabTex = "    "
 
 beginTex :: LatexEnv -> String
 beginTex Tabular1 = "\\begin{tabular}{lll}\n"
@@ -135,23 +149,33 @@ beginTex _ = ""
 latexBold :: String -> String
 latexBold x = "{\\bf " ++ x ++ "} "
 
+itemToLatex :: String -> String
+itemToLatex x = " & \\multicolumn{2}{l}{" ++ x ++ "}\\\\\n"
+
+topPairToLatex :: (String, [String]) -> String
+topPairToLatex (x, []) = " & " ++ x ++ " & \\\\\n"
+topPairToLatex (x, i:is) = " & " ++ x ++ " & " ++ i ++ " \\\\\n"
+
+restPairToLatex :: (String, [String]) -> String
+restPairToLatex (x, []) = ""
+restPairToLatex (x, i:is) = concat $ map rowToLatex is
+    where rowToLatex y = myTab 2 ++ " & " ++ myTab 1 ++ " & " ++ y ++ " \\\\\n" 
+
 topicToLatex :: Topic -> String
 topicToLatex Topic1 {title = t, items = []} = 
-    latexBold t 
-    ++ " & & \\\\\n"
+    myTab 1 ++ latexBold t ++ " & & \\\\\n"
 topicToLatex Topic1 {title = t, items = i : is} = 
-    latexBold t
-    ++ " & \\multicolumn{2}{l}{" ++ i ++ "}\\\\\n"
+    myTab 1 ++ latexBold t ++ itemToLatex i 
     ++ otherRows 
-    where otherRows = concat $ map (\x -> " & \\multicolumn{2}{l}{" ++ x ++ "}\\\\\n") is
+    where otherRows = concat $ map (\x -> myTab 2 ++ itemToLatex x) is
 topicToLatex Topic2 {title = t, itemPairs = []} = 
-    latexBold t 
-    ++ " & & \\\\\n"
+    myTab 1 ++ latexBold t ++ " & & \\\\\n"
 topicToLatex Topic2 {title = t, itemPairs = i : is} = 
-    latexBold t
-    ++ " & " ++ fst i  ++ " & " ++ snd i ++ "\\\\\n"
+    myTab 1 ++ latexBold t
+    ++ topPairToLatex i 
+    ++ restPairToLatex i
     ++ otherRows 
-    where otherRows = concat $ map (\x -> " & " ++ fst x  ++ " & " ++ snd x ++ "\\\\\n") is
+    where otherRows = concat $ map (\x -> myTab 2 ++ topPairToLatex x ++ restPairToLatex x) is
 
 ------------------------------------
 -- CV to Jekyll Markdown Converters.
@@ -170,49 +194,72 @@ markdownHeader =    "---\n"
                  ++ "---\n\n"
                  ++ "<h1>{{page . title}}</h1>\n"
 
+emptyColMarkdown :: String
+emptyColMarkdown = myTab 2 ++ "<td></td>\n"
+
 downloadLink :: String
 downloadLink = 
     " <p> <a href = \"{{site . url}}/cv/MatthewMcGonagleCV.pdf\">Click here</a> if you wish to view my CV as a pdf.</p>\n"
 
+itemToMarkdown :: String -> String
+itemToMarkdown x = myTab 2 ++ "<td colspan = \"2\">" ++ x ++ "</td>\n"
+
+itemRowToMarkdown :: String -> String
+itemRowToMarkdown x = myTab 1 ++ "<tr>\n"
+                   ++ emptyColMarkdown
+                   ++ itemToMarkdown x
+                   ++ myTab 1 ++ "</tr>\n"
+
+topPairToMarkdown :: String -> (String, [String]) -> String
+topPairToMarkdown title (x, []) = 
+       myTab 2 ++ "<th>" ++ title ++ "</th>\n"
+    ++ myTab 2 ++ "<td>" ++ x ++ "</td>\n"
+    ++ myTab 2 ++ " <td></td>\n"
+
+topPairToMarkdown title (x, i:is) = 
+       myTab 2 ++ "<th>" ++ title ++ "</th>\n"
+    ++ myTab 2 ++ "<td>" ++ x ++ "</td>\n"
+    ++ myTab 2 ++ "<td>" ++ i ++ "</td>\n" 
+
+restPairToMarkdown :: (String, [String]) -> String
+restPairToMarkdown (x, []) = ""
+restPairToMarkdown (x, i:is) = concat $ map makeRow is 
+    where makeRow i =  myTab 1 ++ "<tr>\n"
+                    ++ emptyColMarkdown
+                    ++ emptyColMarkdown
+                    ++ myTab 2 ++ "<td>" ++ i ++ "</td>\n"
+                    ++ myTab 1 ++ "</tr>\n" 
+          
+
 topicToMarkdown :: Topic -> String
 topicToMarkdown Topic1 {title = t, items = []} =
-       "    <tr>\n"
-    ++ "        <th>" ++ t ++ "</th>\n" 
-    ++ "    </tr>\n"
+       myTab 1 ++ "<tr>\n"
+    ++ myTab 2 ++ "<th>" ++ t ++ "</th>\n" 
+    ++ myTab 1 ++ "</tr>\n"
 
 topicToMarkdown Topic1 {title = t, items =  i : is} = 
-       "    <tr>\n"
-    ++ "        <th>" ++ t ++ "</th>\n" 
-    ++ "        <td colspan = \"2\">" ++ i ++ "</td>\n"
-    ++ "    </tr>\n"
+       myTab 1 ++ "<tr>\n"
+    ++ myTab 2 ++ "<th>" ++ t ++ "</th>\n" 
+    ++ itemToMarkdown i
+    ++ myTab 1 ++ "</tr>\n"
     ++ otherRows
-    where otherRows = concat $ map(\x ->
-               "   <tr>\n"
-            ++ "        <td></td>\n"
-            ++ "        <td colspan = \"2\">" ++ x ++ "</td>\n" 
-            ++ "   </tr>\n"
-            )
-            is
+    where otherRows = concat $ map itemRowToMarkdown is
+
 topicToMarkdown Topic2 {title = t, itemPairs = []} =
-       "    <tr>\n"
-    ++ "        <th>" ++ t ++ "</th>\n" 
-    ++ "    </tr>\n"
+       myTab 1 ++ "<tr>\n"
+    ++ myTab 2 ++ "<th>" ++ t ++ "</th>\n" 
+    ++ myTab 1 ++ "</tr>\n"
 
 topicToMarkdown Topic2 {title = t, itemPairs =  i : is} = 
-       "    <tr>\n"
-    ++ "        <th>" ++ t ++ "</th>\n" 
-    ++ "        <td>" ++ fst i ++ "</td>\n"
-    ++ "        <td>" ++ snd i ++ "<td>\n"
-    ++ "    </tr>\n"
+       myTab 1 ++ "<tr>\n"
+    ++ topPairToMarkdown t i
+    ++ myTab 1 ++ "</tr>\n"
+    ++ restPairToMarkdown i
     ++ otherRows
     where otherRows = concat $ map(\x ->
-               "   <tr>\n"
-            ++ "        <td></td>\n"
-            ++ "        <td>" ++ fst x ++ "</td>\n" 
-            ++ "        <td>" ++ snd x ++ "</td>\n"
-            ++ "   </tr>\n"
+               myTab 1 ++ "<tr>\n"
+            ++ topPairToMarkdown "" x 
+            ++ myTab 1 ++ "</tr>\n"
+            ++ restPairToMarkdown x
             )
             is
-
-    
-
