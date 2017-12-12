@@ -105,7 +105,8 @@ myParse = parse cvfile "source name"
 myParseTest = parseTest cvfile 
 
 latexHeader :: String
-latexHeader = "\\documentclass{article}\n\n"
+latexHeader = "\\documentclass{article}\n"
+    ++ "\\usepackage{booktabs}\n\n"
     ++ "\\begin{document}\n"
 
 latexEnd :: String
@@ -116,38 +117,40 @@ latexEnd = "\\end{document}\n"
 ------------------------------
 
 cvToLatex :: CV -> String
-cvToLatex x = latexHeader ++ body ++ latexEnd
+cvToLatex x = latexHeader 
+              ++ beginTex Tabular1
+              ++ body 
+              ++ "\\end{tabular}\n"
+              ++ latexEnd
     where body = concat $ map (\x -> topicToLatex x ++ topicSep) (topics x)
 
 topicSep :: String
-topicSep = "vspace{0.1in}\\"
+topicSep = "\\midrule"
 
 beginTex :: LatexEnv -> String
-beginTex Tabular1 = "\\begin{tabular}{p{2 cm}p{8 cm}}\n"
-beginTex Tabular2 = "\\begin{tabular}{p{2 cm}p{4 cm}p{4 cm}}\n"
+beginTex Tabular1 = "\\begin{tabular}{lll}\n"
+beginTex Tabular2 = beginTex Tabular1 
 beginTex _ = "" 
 
 latexBold :: String -> String
 latexBold x = "{\\bf " ++ x ++ "} "
 
 topicToLatex :: Topic -> String
-topicToLatex Topic1 {title = t, items = []} = (beginTex Tabular1)
-    ++ latexBold t 
-    ++ " & \n\\end{tabular}" 
-topicToLatex Topic1 {title = t, items = i : is} = (beginTex Tabular1) 
-    ++ latexBold t
-    ++ " & " ++ i ++ "\\\\\n"
+topicToLatex Topic1 {title = t, items = []} = 
+    latexBold t 
+    ++ " & & \\\\\n"
+topicToLatex Topic1 {title = t, items = i : is} = 
+    latexBold t
+    ++ " & \\multicolumn{2}{l}{" ++ i ++ "}\\\\\n"
     ++ otherRows 
-    ++ "\\end{tabular}\n\n" 
-    where otherRows = concat $ map (\x -> " & " ++ x ++ "\\\\\n") is
-topicToLatex Topic2 {title = t, itemPairs = []} = (beginTex Tabular2)
-    ++ latexBold t 
-    ++ " & \n\\end{tabular}" 
-topicToLatex Topic2 {title = t, itemPairs = i : is} = (beginTex Tabular2) 
-    ++ latexBold t
+    where otherRows = concat $ map (\x -> " & \\multicolumn{2}{l}{" ++ x ++ "}\\\\\n") is
+topicToLatex Topic2 {title = t, itemPairs = []} = 
+    latexBold t 
+    ++ " & & \\\\\n"
+topicToLatex Topic2 {title = t, itemPairs = i : is} = 
+    latexBold t
     ++ " & " ++ fst i  ++ " & " ++ snd i ++ "\\\\\n"
     ++ otherRows 
-    ++ "\\end{tabular}\n\n" 
     where otherRows = concat $ map (\x -> " & " ++ fst x  ++ " & " ++ snd x ++ "\\\\\n") is
 
 ------------------------------------

@@ -1,7 +1,6 @@
 <topic1>
 <title> Technical Skills </title>
-<item> C++, Python, Haskell, \LaTeX, 
-Sci-Kit Learn, TensorFlow </item>
+<item> C++, Python, Haskell, \LaTeX, Sci-Kit Learn, TensorFlow </item>
 </topic1>
 
 <topic1>
@@ -12,8 +11,11 @@ Sci-Kit Learn, TensorFlow </item>
 
 <topic2>
 <title> Education </title>
-<item> 2008 - 2016 </item>
+<item> 2010 - 2014 </item>
 <item> Ph.D., Mathematics, Johns Hopkins University </item>
+
+<item> 2008 - 2010 </item>
+<item> M.A., Mathematics, Johns Hopkins University </item>
 
 <item> 2004 - 2008 </item>
 <item> Dual Degree </item>
