@@ -10,9 +10,13 @@
 
 <topic2>
 <title> Portfolio </title>
+
 <item1> GitHub Profile</item1>
 <item2> MatthewMcGonagle</item2>
 <item2> https://github.com/MatthewMcGonagle</item2>
+
+<item1> Detailed Portfolio</item1>
+<item2> https://matthewmcgonagle.github.io/portfolio </item2>
 
 <item1> CVWriter </item1>
 <item2> Haskell </item2>
@@ -30,6 +34,14 @@
 <item2> Python </item2>
 <item2> https://github.com/MatthewMcGonagle /HilbertDraw</item2>
 <item2> Library to take a picture, and draw it using Hilbert fractal-like curves.</item2>
+
+<item1> Blog </item1>
+<item2> https://matthewmcgonagle.github.io/blog/</item2>
+<item2> Noteworthy Posts: </item2>
+<item2> 30 Oct 2017 - Picture Effects in Tensor Flow </item2>
+<item2> 21 Nov 2017 - Random Traversal of A Binary Tree </item2>
+<item2> 08 Dec 2017 - A Pitfall of Errors in Parsec Package for Haskell </item2>
+<item2> 03 Nov 2017 - Drawing a Binary Tree Using Gradient Descent and a Potential Function </item2>
 </topic2>
 
 <topic2>
