@@ -4,8 +4,8 @@ module CVWriter
 , myParseTest
 , CV
 , Topic
-, cvToLatex
-, cvToMarkdown
+, Output (Latex, Jekyll)
+, convertCV
 ) where
 
 import Text.ParserCombinators.Parsec
@@ -20,6 +20,8 @@ data CV = CV {topics :: [Topic]}
     deriving (Show)
 
 data LatexEnv = Tabular1 | Tabular2 | Section
+
+data Output = Latex | Jekyll
 
 ------------------------------
 -- *.cv Text Parsers
@@ -123,23 +125,142 @@ myTab :: Int -> String
 myTab n = concat $ replicate n singleTab
     where singleTab = "    "
 
+convertCV :: Output -> CV -> String
+convertCV Latex cv =
+       latexHeader
+    ++ beginTex Tabular1
+    ++ body
+    ++ "\\end{tabular}\n"
+    ++ latexEnd
+    where body = concat $ map (\x -> convertTopic Latex x ++ topicSep) (topics cv) 
+
+convertCV Jekyll cv = jekyllHeader ++ downloadLink ++ body ++ downloadLink
+    where body =    "<table>\n"
+                 ++ (concat $ map (convertTopic Jekyll) (topics cv))
+                 ++ "</table>\n"
+
+-- Function for converting Topic to String based on the output format.
+
+convertTopic :: Output -> Topic -> String
+
+convertTopic Latex Topic1 {title = t, items = []} = 
+    myTab 1 ++ latexBold t ++ " & & \\\\\n"
+
+convertTopic Latex Topic1 {title = t, items = i : is} = 
+    myTab 1 ++ latexBold t ++ convertItem Latex i 
+    ++ otherRows 
+    where otherRows = concat $ map (\x -> myTab 2 ++ convertItem Latex x) is
+
+convertTopic Latex Topic2 {title = t, itemPairs = []} = 
+    myTab 1 ++ latexBold t ++ " & & \\\\\n"
+
+convertTopic Latex Topic2 {title = t, itemPairs = i : is} = 
+    myTab 1 ++ latexBold t
+    ++ convertPairToCols Latex i 
+    ++ convertPairToTailRows Latex i
+    ++ otherRows 
+    where otherRows = concat $ map (\x -> myTab 2 ++ convertPairToCols Latex x ++ convertPairToTailRows Latex x) is
+
+convertTopic Jekyll Topic1 {title = t, items = []} =
+       myTab 1 ++ "<tr>\n"
+    ++ myTab 2 ++ "<th>" ++ t ++ "</th>\n" 
+    ++ myTab 1 ++ "</tr>\n"
+
+convertTopic Jekyll Topic1 {title = t, items =  i : is} = 
+       myTab 1 ++ "<tr>\n"
+    ++ myTab 2 ++ "<th>" ++ t ++ "</th>\n" 
+    ++ convertItem Jekyll i
+    ++ myTab 1 ++ "</tr>\n"
+    ++ otherRows
+    where otherRows = concat $ map makeNoTitleRow is
+
+convertTopic Jekyll Topic2 {title = t, itemPairs = []} =
+       myTab 1 ++ "<tr>\n"
+    ++ myTab 2 ++ "<th>" ++ t ++ "</th>\n" 
+    ++ myTab 1 ++ "</tr>\n"
+
+convertTopic Jekyll Topic2 {title = t, itemPairs =  i : is} = 
+       myTab 1 ++ "<tr>\n"
+    ++ myTab 2 ++ "<th>" ++ t ++ "</th>\n"
+    ++ convertPairToCols Jekyll i
+    ++ myTab 1 ++ "</tr>\n"
+    ++ convertPairToTailRows Jekyll i
+    ++ otherRows
+    where otherRows = concat $ map(\x ->
+               myTab 1 ++ "<tr>\n"
+            ++ myTab 2 ++ "<th>" ++ t ++ "</th>\n"
+            ++ convertPairToCols Jekyll x 
+            ++ myTab 1 ++ "</tr>\n"
+            ++ convertPairToTailRows Jekyll x
+            )
+            is
+
+-- Function to convert item String to String for the given output format.
+
+convertItem :: Output -> String -> String
+
+convertItem Latex item = " & \\multicolumn{2}{l}{" ++ item ++ "}\\\\\n"
+
+convertItem Jekyll item = myTab 2 ++ "<td colspan = \"2\">" ++ item ++ "</td>\n"
+
+-- Function to make a row with nothing in the title column (i.e. the first column) for Jekyll. This
+-- isn't necessary for LaTeX.
+
+makeNoTitleRow :: String -> String
+makeNoTitleRow item = myTab 1 ++ "<tr>\n"
+                   ++ emptyColJekyll
+                   ++ convertItem Jekyll item 
+                   ++ myTab 1 ++ "</tr>\n"
+
+-- Function to convert item pair to first row data given the output format.
+
+convertPairToCols :: Output -> (String, [String]) -> String
+
+convertPairToCols Latex (x, []) = " & " ++ x ++ " & \\\\\n"
+
+convertPairToCols Latex (x, i:is) = " & " ++ x ++ " & " ++ i ++ " \\\\\n"
+
+convertPairToCols Jekyll (x, []) = 
+       myTab 2 ++ "<td>" ++ x ++ "</td>\n"
+    ++ myTab 2 ++ " <td></td>\n"
+
+convertPairToCols Jekyll (x, i:is) = 
+       myTab 2 ++ "<td>" ++ x ++ "</td>\n"
+    ++ myTab 2 ++ "<td>" ++ i ++ "</td>\n" 
+
+-- Function to convert item pair to remaining rows given the output format.
+
+convertPairToTailRows :: Output -> (String, [String]) -> String
+
+convertPairToTailRows Latex (x, []) = ""
+
+convertPairToTailRows Latex (x, i:is) = concat $ map rowToLatex is
+    where rowToLatex y = myTab 2 ++ " & " ++ myTab 1 ++ " & " ++ y ++ " \\\\\n" 
+
+convertPairToTailRows Jekyll (x, []) = ""
+
+convertPairToTailRows Jekyll (x, i:is) = concat $ map makeRow is 
+    where makeRow i =  myTab 1 ++ "<tr>\n"
+                    ++ emptyColJekyll
+                    ++ emptyColJekyll
+                    ++ myTab 2 ++ "<td>" ++ i ++ "</td>\n"
+                    ++ myTab 1 ++ "</tr>\n" 
+
+-- The header to put at the start of a jekyll file.
+
+jekyllHeader :: String
+jekyllHeader =    "---\n"
+               ++ "layout: default\n"
+               ++ "title: Matthew McGonagle's CV\n"
+               ++ "---\n\n"
+               ++ "<h1>{{page . title}}</h1>\n"
+
 ------------------------------
 -- CV to LaTeX file converters.
 ------------------------------
 
-cvToLatex :: CV -> String
-cvToLatex x = latexHeader 
-              ++ beginTex Tabular1
-              ++ body 
-              ++ "\\end{tabular}\n"
-              ++ latexEnd
-    where body = concat $ map (\x -> topicToLatex x ++ topicSep) (topics x)
-
 topicSep :: String
 topicSep = myTab 1 ++ "\\midrule\n"
-
-tabTex :: String
-tabTex = "    "
 
 beginTex :: LatexEnv -> String
 beginTex Tabular1 = "\\begin{tabular}{llp{7cm}}\n"
@@ -149,117 +270,14 @@ beginTex _ = ""
 latexBold :: String -> String
 latexBold x = "{\\bf " ++ x ++ "} "
 
-itemToLatex :: String -> String
-itemToLatex x = " & \\multicolumn{2}{l}{" ++ x ++ "}\\\\\n"
-
-topPairToLatex :: (String, [String]) -> String
-topPairToLatex (x, []) = " & " ++ x ++ " & \\\\\n"
-topPairToLatex (x, i:is) = " & " ++ x ++ " & " ++ i ++ " \\\\\n"
-
-restPairToLatex :: (String, [String]) -> String
-restPairToLatex (x, []) = ""
-restPairToLatex (x, i:is) = concat $ map rowToLatex is
-    where rowToLatex y = myTab 2 ++ " & " ++ myTab 1 ++ " & " ++ y ++ " \\\\\n" 
-
-topicToLatex :: Topic -> String
-topicToLatex Topic1 {title = t, items = []} = 
-    myTab 1 ++ latexBold t ++ " & & \\\\\n"
-topicToLatex Topic1 {title = t, items = i : is} = 
-    myTab 1 ++ latexBold t ++ itemToLatex i 
-    ++ otherRows 
-    where otherRows = concat $ map (\x -> myTab 2 ++ itemToLatex x) is
-topicToLatex Topic2 {title = t, itemPairs = []} = 
-    myTab 1 ++ latexBold t ++ " & & \\\\\n"
-topicToLatex Topic2 {title = t, itemPairs = i : is} = 
-    myTab 1 ++ latexBold t
-    ++ topPairToLatex i 
-    ++ restPairToLatex i
-    ++ otherRows 
-    where otherRows = concat $ map (\x -> myTab 2 ++ topPairToLatex x ++ restPairToLatex x) is
-
 ------------------------------------
 -- CV to Jekyll Markdown Converters.
 ------------------------------------
 
-cvToMarkdown :: CV -> String
-cvToMarkdown x = markdownHeader ++ downloadLink ++ body ++ downloadLink
-    where body =    "<table>\n"
-                 ++ (concat $ map topicToMarkdown (topics x))
-                 ++ "</table>\n"
-
-markdownHeader :: String
-markdownHeader =    "---\n"
-                 ++ "layout: default\n"
-                 ++ "title: Matthew McGonagle's CV\n"
-                 ++ "---\n\n"
-                 ++ "<h1>{{page . title}}</h1>\n"
-
-emptyColMarkdown :: String
-emptyColMarkdown = myTab 2 ++ "<td></td>\n"
+emptyColJekyll :: String
+emptyColJekyll = myTab 2 ++ "<td></td>\n"
 
 downloadLink :: String
 downloadLink = 
     " <p> <a href = \"{{site . url}}/cv/MatthewMcGonagleCV.pdf\">Click here</a> if you wish to view my CV as a pdf.</p>\n"
 
-itemToMarkdown :: String -> String
-itemToMarkdown x = myTab 2 ++ "<td colspan = \"2\">" ++ x ++ "</td>\n"
-
-itemRowToMarkdown :: String -> String
-itemRowToMarkdown x = myTab 1 ++ "<tr>\n"
-                   ++ emptyColMarkdown
-                   ++ itemToMarkdown x
-                   ++ myTab 1 ++ "</tr>\n"
-
-topPairToMarkdown :: String -> (String, [String]) -> String
-topPairToMarkdown title (x, []) = 
-       myTab 2 ++ "<th>" ++ title ++ "</th>\n"
-    ++ myTab 2 ++ "<td>" ++ x ++ "</td>\n"
-    ++ myTab 2 ++ " <td></td>\n"
-
-topPairToMarkdown title (x, i:is) = 
-       myTab 2 ++ "<th>" ++ title ++ "</th>\n"
-    ++ myTab 2 ++ "<td>" ++ x ++ "</td>\n"
-    ++ myTab 2 ++ "<td>" ++ i ++ "</td>\n" 
-
-restPairToMarkdown :: (String, [String]) -> String
-restPairToMarkdown (x, []) = ""
-restPairToMarkdown (x, i:is) = concat $ map makeRow is 
-    where makeRow i =  myTab 1 ++ "<tr>\n"
-                    ++ emptyColMarkdown
-                    ++ emptyColMarkdown
-                    ++ myTab 2 ++ "<td>" ++ i ++ "</td>\n"
-                    ++ myTab 1 ++ "</tr>\n" 
-          
-
-topicToMarkdown :: Topic -> String
-topicToMarkdown Topic1 {title = t, items = []} =
-       myTab 1 ++ "<tr>\n"
-    ++ myTab 2 ++ "<th>" ++ t ++ "</th>\n" 
-    ++ myTab 1 ++ "</tr>\n"
-
-topicToMarkdown Topic1 {title = t, items =  i : is} = 
-       myTab 1 ++ "<tr>\n"
-    ++ myTab 2 ++ "<th>" ++ t ++ "</th>\n" 
-    ++ itemToMarkdown i
-    ++ myTab 1 ++ "</tr>\n"
-    ++ otherRows
-    where otherRows = concat $ map itemRowToMarkdown is
-
-topicToMarkdown Topic2 {title = t, itemPairs = []} =
-       myTab 1 ++ "<tr>\n"
-    ++ myTab 2 ++ "<th>" ++ t ++ "</th>\n" 
-    ++ myTab 1 ++ "</tr>\n"
-
-topicToMarkdown Topic2 {title = t, itemPairs =  i : is} = 
-       myTab 1 ++ "<tr>\n"
-    ++ topPairToMarkdown t i
-    ++ myTab 1 ++ "</tr>\n"
-    ++ restPairToMarkdown i
-    ++ otherRows
-    where otherRows = concat $ map(\x ->
-               myTab 1 ++ "<tr>\n"
-            ++ topPairToMarkdown "" x 
-            ++ myTab 1 ++ "</tr>\n"
-            ++ restPairToMarkdown x
-            )
-            is
