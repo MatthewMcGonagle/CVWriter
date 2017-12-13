@@ -12,10 +12,13 @@ import Text.ParserCombinators.Parsec
 import qualified Text.Parsec.Prim as Prim
 import Text.Parsec.Combinator
 
-data Info = JustText String | Italic String
+data ItemPiece = JustText String | Italic String
+    deriving (Show)
 
-data Topic =   Topic1 {title :: String, items :: [String]}
-             | Topic2 {title :: String, itemPairs :: [(String, [String])]} 
+type Item= [ItemPiece]
+
+data Topic =   Topic1 {title :: String, items :: [Item]}
+             | Topic2 {title :: String, itemPairs :: [(Item, [Item])]} 
     deriving (Show)
 
 data CV = CV {topics :: [Topic]}
@@ -47,18 +50,28 @@ lTag name = do
 rTag :: String -> Prim.Parsec [Char] st String
 rTag name = lTag $ "/" ++ name 
 
-italicInfo :: Prim.Parsec String st Info
-italicInfo = do
-             lTag "italic"
-             text <- many (noneOf "<")
-             try (rTag "italic") <?> "rTag </italic>" 
-             return $ Italic text
+italicItemPiece :: Prim.Parsec String st ItemPiece
+italicItemPiece = do
+                  lTag "italic"
+                  text <- many1 (noneOf "<")
+                  try (rTag "italic") <?> "rTag </italic>" 
+                  return $ Italic text
+
+regularItemPiece :: Prim.Parsec String st ItemPiece
+regularItemPiece = do
+                   text <- many1 (noneOf "<")
+                   return $ JustText text
+
+itemPieces :: Prim.Parsec String st Item
+itemPieces = do
+             let piece = try italicItemPiece <|> regularItemPiece
+             many $ piece
   
-topicItem :: String -> Prim.Parsec [Char] st String
+topicItem :: String -> Prim.Parsec [Char] st Item
 topicItem category = do
                      let tagString = "item" ++ category
                      lTag tagString
-                     item <- many $ noneOf "<" 
+                     item <- itemPieces
                      rTag tagString 
                      return item 
 
@@ -80,7 +93,7 @@ topic1 = do
              <?> "rTag </topic1>"
          return $ Topic1 {title = title, items = rCol}
 
-itemPair :: Prim.Parsec [Char] st (String, [String])
+itemPair :: Prim.Parsec [Char] st (Item, [Item])
 itemPair = do
            first <- topicItem "1"
            spaces
@@ -149,9 +162,9 @@ convertTopic Latex Topic1 {title = t, items = []} =
     myTab 1 ++ latexBold t ++ " & & \\\\\n"
 
 convertTopic Latex Topic1 {title = t, items = i : is} = 
-    myTab 1 ++ latexBold t ++ convertItem Latex i 
+    myTab 1 ++ latexBold t ++ makeOneCol Latex i 
     ++ otherRows 
-    where otherRows = concat $ map (\x -> myTab 2 ++ convertItem Latex x) is
+    where otherRows = concat $ map (\x -> myTab 2 ++ makeOneCol Latex x) is
 
 convertTopic Latex Topic2 {title = t, itemPairs = []} = 
     myTab 1 ++ latexBold t ++ " & & \\\\\n"
@@ -171,7 +184,7 @@ convertTopic Jekyll Topic1 {title = t, items = []} =
 convertTopic Jekyll Topic1 {title = t, items =  i : is} = 
        myTab 1 ++ "<tr>\n"
     ++ myTab 2 ++ "<th>" ++ t ++ "</th>\n" 
-    ++ convertItem Jekyll i
+    ++ makeOneCol Jekyll i
     ++ myTab 1 ++ "</tr>\n"
     ++ otherRows
     where otherRows = concat $ map makeNoTitleRow is
@@ -199,16 +212,29 @@ convertTopic Jekyll Topic2 {title = t, itemPairs =  i : is} =
 
 -- Function to convert item String to String for the given output format.
 
-convertItem :: Output -> String -> String
+makeOneCol :: Output -> Item-> String
 
-convertItem Latex item = " & \\multicolumn{2}{l}{" ++ item ++ "}\\\\\n"
+makeOneCol Latex item = " & \\multicolumn{2}{l}{" ++ convertItem Latex item ++ "}\\\\\n"
 
-convertItem Jekyll item = myTab 2 ++ "<td colspan = \"2\">" ++ item ++ "</td>\n"
+makeOneCol Jekyll item = myTab 2 ++ "<td colspan = \"2\">" ++ convertItem Jekyll item ++ "</td>\n"
 
+-- Function to convert each item to a string.
+
+convertItem :: Output -> Item -> String
+convertItem format = concat . map (convertItemPiece format) 
+
+-- Function to convert item info.
+
+convertItemPiece :: Output -> ItemPiece -> String
+convertItemPiece _ (JustText x) = x
+convertItemPiece Latex (Italic x) = 
+       "\\textit{" ++ x ++ "}"
+convertItemPiece Jekyll (Italic x) = "<i>" ++ x ++ "</i>" 
+   
 -- Function to make a row with nothing in the title column (i.e. the first column) for Jekyll. This
 -- isn't necessary for LaTeX.
 
-makeNoTitleRow :: String -> String
+makeNoTitleRow :: Item -> String
 makeNoTitleRow item = myTab 1 ++ "<tr>\n"
                    ++ emptyColJekyll
                    ++ convertItem Jekyll item 
@@ -216,28 +242,28 @@ makeNoTitleRow item = myTab 1 ++ "<tr>\n"
 
 -- Function to convert item pair to first row data given the output format.
 
-convertPairToCols :: Output -> (String, [String]) -> String
+convertPairToCols :: Output -> (Item, [Item]) -> String
 
-convertPairToCols Latex (x, []) = " & " ++ x ++ " & \\\\\n"
+convertPairToCols Latex (x, []) = " & " ++ convertItem Latex x ++ " & \\\\\n"
 
-convertPairToCols Latex (x, i:is) = " & " ++ x ++ " & " ++ i ++ " \\\\\n"
+convertPairToCols Latex (x, i:is) = " & " ++ convertItem Latex x ++ " & " ++ convertItem Latex i ++ " \\\\\n"
 
 convertPairToCols Jekyll (x, []) = 
-       myTab 2 ++ "<td>" ++ x ++ "</td>\n"
+       myTab 2 ++ "<td>" ++ convertItem Jekyll x ++ "</td>\n"
     ++ myTab 2 ++ " <td></td>\n"
 
 convertPairToCols Jekyll (x, i:is) = 
-       myTab 2 ++ "<td>" ++ x ++ "</td>\n"
-    ++ myTab 2 ++ "<td>" ++ i ++ "</td>\n" 
+       myTab 2 ++ "<td>" ++ convertItem Jekyll x ++ "</td>\n"
+    ++ myTab 2 ++ "<td>" ++ convertItem Jekyll i ++ "</td>\n" 
 
 -- Function to convert item pair to remaining rows given the output format.
 
-convertPairToTailRows :: Output -> (String, [String]) -> String
+convertPairToTailRows :: Output -> (Item, [Item]) -> String
 
 convertPairToTailRows Latex (x, []) = ""
 
 convertPairToTailRows Latex (x, i:is) = concat $ map rowToLatex is
-    where rowToLatex y = myTab 2 ++ " & " ++ myTab 1 ++ " & " ++ y ++ " \\\\\n" 
+    where rowToLatex y = myTab 2 ++ " & " ++ myTab 1 ++ " & " ++ convertItem Latex y ++ " \\\\\n" 
 
 convertPairToTailRows Jekyll (x, []) = ""
 
@@ -245,7 +271,7 @@ convertPairToTailRows Jekyll (x, i:is) = concat $ map makeRow is
     where makeRow i =  myTab 1 ++ "<tr>\n"
                     ++ emptyColJekyll
                     ++ emptyColJekyll
-                    ++ myTab 2 ++ "<td>" ++ i ++ "</td>\n"
+                    ++ myTab 2 ++ "<td>" ++ convertItem Jekyll i ++ "</td>\n"
                     ++ myTab 1 ++ "</tr>\n" 
 
 -- The header to put at the start of a jekyll file.
