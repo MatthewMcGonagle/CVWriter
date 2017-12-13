@@ -12,6 +12,8 @@ import Text.ParserCombinators.Parsec
 import qualified Text.Parsec.Prim as Prim
 import Text.Parsec.Combinator
 
+data Info = JustText String | Italic String
+
 data Topic =   Topic1 {title :: String, items :: [String]}
              | Topic2 {title :: String, itemPairs :: [(String, [String])]} 
     deriving (Show)
@@ -37,41 +39,43 @@ lTag :: String -> Prim.Parsec [Char] st String
 lTag name = do
        lBracket
        spaces
-       string name
+       try (string name) <?> name 
        spaces
-       rBracket
+       try rBracket <?> ">" 
        return name
 
 rTag :: String -> Prim.Parsec [Char] st String
 rTag name = lTag $ "/" ++ name 
 
+italicInfo :: Prim.Parsec String st Info
+italicInfo = do
+             lTag "italic"
+             text <- many (noneOf "<")
+             try (rTag "italic") <?> "rTag </italic>" 
+             return $ Italic text
+  
 topicItem :: String -> Prim.Parsec [Char] st String
 topicItem category = do
                      let tagString = "item" ++ category
-                     try (lTag tagString)
-                         <?> "lTag <" ++ tagString ++ ">"
+                     lTag tagString
                      item <- many $ noneOf "<" 
-                     try (rTag tagString) 
-                         <?> "rTag </" ++ tagString ++ ">"
+                     rTag tagString 
                      return item 
 
 topicTitle :: Prim.Parsec [Char] st String
 topicTitle = do
-             try (lTag "title")
-                 <?> "lTag <title>"
+             lTag "title"
              title <- many $ noneOf "<"
-             try (rTag "title")
-                 <?> "rTag </title>"
+             rTag "title"
              return title
 
 topic1 :: Prim.Parsec [Char] st Topic 
 topic1 = do
-         try (lTag "topic1")
-             <?> "lTag <topic1>"
+         lTag "topic1"
          spaces
          title <- topicTitle
          spaces
-         rCol <- endBy (topicItem "") spaces
+         rCol <- endBy (try $ topicItem "") spaces
          try (rTag "topic1")
              <?> "rTag </topic1>"
          return $ Topic1 {title = title, items = rCol}
@@ -80,19 +84,17 @@ itemPair :: Prim.Parsec [Char] st (String, [String])
 itemPair = do
            first <- topicItem "1"
            spaces
-           second <- endBy (topicItem "2") spaces
+           second <- endBy (try $ topicItem "2") spaces
            return (first, second) 
 
 topic2 :: Prim.Parsec [Char] st Topic
 topic2 = do
-         try (lTag "topic2")
-             <?> "lTag <topic2>"
+         lTag "topic2"
          spaces
          title <- topicTitle
          spaces
-         itemPairs <- endBy itemPair spaces
-         try (rTag "topic2")
-             <?> "rTag </topic2>"
+         itemPairs <- endBy (try itemPair) spaces
+         rTag "topic2"
          return $ Topic2 {title = title, itemPairs = itemPairs} 
         
 topicList :: Prim.Parsec [Char] st [Topic]
