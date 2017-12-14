@@ -1,3 +1,4 @@
+<title>Matthew McGonagle</title>
 <topic1>
 <title> Technical Skills </title>
 <item> C++, Python, Haskell, \LaTeX, Sci-Kit Learn, TensorFlow, Jupyter Notebooks </item>
@@ -30,8 +31,8 @@ https://github.com/MatthewMcGonagle/CVWriter </hyperlink></item2>
 
 <item1> Quadratic Field Extension </item1>
 <item2> C++ </item2>
-<item2> <hyperlink>https://github.com/QuadraticFieldExtension<url>
-https://github.com/QuadraticFieldExtension </hyperlink></item2>
+<item2> <hyperlink>https://github.com/MatthewMcGonagle/ QuadraticFieldExtension<url>
+https://github.com/MatthewMcGonagle/QuadraticFieldExtension </hyperlink></item2>
 <item2> Library to allow infinite precision arithmetic for numbers made of any number of square roots, such as sqrt(1 + sqrt(2)).</item2>
 
 <item1> Hilbert Draw </item1>
@@ -41,7 +42,9 @@ https://github.com/MatthewMcGonagle/HilbertDraw</hyperlink> </item2>
 <item2> Library to take a picture, and draw it using Hilbert fractal-like curves.</item2>
 
 <item1> Blog </item1>
-<item2> https://matthewmcgonagle.github.io/blog/</item2>
+<item2> <hyperlink>https://matthewmcgonagle.github.io/blog/<url>
+https://matthewmcgonagle.github.io/blog/</hyperlink>
+</item2>
 <item2> Noteworthy Posts: </item2>
 <item2> 30 Oct 2017 - <italic> Picture Effects in Tensor Flow </italic> </item2>
 <item2> 21 Nov 2017 - <italic> Random Traversal of A Binary Tree </italic> </item2>

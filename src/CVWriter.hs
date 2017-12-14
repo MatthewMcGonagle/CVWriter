@@ -21,7 +21,7 @@ data Topic =   Topic1 {title :: String, items :: [Item]}
              | Topic2 {title :: String, itemPairs :: [(Item, [Item])]} 
     deriving (Show)
 
-data CV = CV {topics :: [Topic]}
+data CV = CV {topics :: [Topic], cvTitle :: String}
     deriving (Show)
 
 data LatexEnv = Tabular1 | Tabular2 | Section
@@ -89,8 +89,8 @@ topicItem category = do
                      rTag tagString 
                      return item 
 
-topicTitle :: Prim.Parsec [Char] st String
-topicTitle = do
+titleBlock :: Prim.Parsec [Char] st String
+titleBlock = do
              lTag "title"
              title <- many $ noneOf "<"
              rTag "title"
@@ -100,12 +100,12 @@ topic1 :: Prim.Parsec [Char] st Topic
 topic1 = do
          lTag "topic1"
          spaces
-         title <- topicTitle
+         topicTitle <- titleBlock 
          spaces
          rCol <- endBy (try $ topicItem "") spaces
          try (rTag "topic1")
              <?> "rTag </topic1>"
-         return $ Topic1 {title = title, items = rCol}
+         return $ Topic1 {title = topicTitle, items = rCol}
 
 itemPair :: Prim.Parsec [Char] st (Item, [Item])
 itemPair = do
@@ -118,11 +118,11 @@ topic2 :: Prim.Parsec [Char] st Topic
 topic2 = do
          lTag "topic2"
          spaces
-         title <- topicTitle
+         topicTitle <- titleBlock 
          spaces
          itemPairs <- endBy (try itemPair) spaces
          rTag "topic2"
-         return $ Topic2 {title = title, itemPairs = itemPairs} 
+         return $ Topic2 {title = topicTitle, itemPairs = itemPairs} 
         
 topicList :: Prim.Parsec [Char] st [Topic]
 topicList = endBy (try topic1 <|> topic2) spaces 
@@ -130,19 +130,15 @@ topicList = endBy (try topic1 <|> topic2) spaces
 cvfile :: Prim.Parsec String st CV
 cvfile = do
          spaces
+         cvTitle <- titleBlock
+         spaces
          topics <- topicList
          spaces
          eof
-         return $ CV {topics = topics}
+         return $ CV {topics = topics, cvTitle = cvTitle}
          
 myParse = parse cvfile "source name"
 myParseTest = parseTest cvfile 
-
-latexHeader :: String
-latexHeader = "\\documentclass{article}\n"
-    ++ "\\usepackage{booktabs}\n"
-    ++ "\\usepackage{hyperref}\n\n"
-    ++ "\\begin{document}\n"
 
 latexEnd :: String
 latexEnd = "\\end{document}\n"
@@ -157,14 +153,14 @@ myTab n = concat $ replicate n singleTab
 
 convertCV :: Output -> CV -> String
 convertCV Latex cv =
-       latexHeader
+       makeHeader Latex (cvTitle cv)
     ++ beginTex Tabular1
     ++ body
     ++ "\\end{tabular}\n"
     ++ latexEnd
     where body = concat $ map (\x -> convertTopic Latex x ++ topicSep) (topics cv) 
 
-convertCV Jekyll cv = jekyllHeader ++ downloadLink ++ body ++ downloadLink
+convertCV Jekyll cv = makeHeader Jekyll (cvTitle cv) ++ downloadLink ++ body ++ downloadLink
     where body =    "<table>\n"
                  ++ (concat $ map (convertTopic Jekyll) (topics cv))
                  ++ "</table>\n"
@@ -218,7 +214,7 @@ convertTopic Jekyll Topic2 {title = t, itemPairs =  i : is} =
     ++ otherRows
     where otherRows = concat $ map(\x ->
                myTab 1 ++ "<tr>\n"
-            ++ myTab 2 ++ "<th>" ++ t ++ "</th>\n"
+            ++ emptyColJekyll 
             ++ convertPairToCols Jekyll x 
             ++ myTab 1 ++ "</tr>\n"
             ++ convertPairToTailRows Jekyll x
@@ -296,14 +292,24 @@ convertPairToTailRows Jekyll (x, i:is) = concat $ map makeRow is
                     ++ myTab 2 ++ "<td>" ++ convertItem Jekyll i ++ "</td>\n"
                     ++ myTab 1 ++ "</tr>\n" 
 
--- The header to put at the start of a jekyll file.
+-- The header of the CV depending on the output type.
 
-jekyllHeader :: String
-jekyllHeader =    "---\n"
-               ++ "layout: default\n"
-               ++ "title: Matthew McGonagle's CV\n"
-               ++ "---\n\n"
-               ++ "<h1>{{page . title}}</h1>\n"
+makeHeader :: Output -> String -> String
+makeHeader Latex headerTitle = 
+       "\\documentclass{article}\n"
+    ++ "\\usepackage{booktabs}\n"
+    ++ "\\usepackage{hyperref}\n\n"
+    ++ "\\begin{document}\n"
+    ++ "\\begin{center}\n"
+    ++ "\\textbf{\\Large " ++ headerTitle ++ "}\n"
+    ++ "\\end{center}\n\n"
+
+makeHeader Jekyll headerTitle = 
+       "---\n"
+    ++ "layout: default\n"
+    ++ "title: Matthew McGonagle's CV\n"
+    ++ "---\n\n"
+    ++ "<h1>" ++ headerTitle ++ "</h1>\n"
 
 ------------------------------
 -- CV to LaTeX file converters.
@@ -313,7 +319,7 @@ topicSep :: String
 topicSep = myTab 1 ++ "\\midrule\n"
 
 beginTex :: LatexEnv -> String
-beginTex Tabular1 = "\\begin{tabular}{llp{7cm}}\n"
+beginTex Tabular1 = "\\noindent\\begin{tabular}{llp{7cm}}\n"
 beginTex Tabular2 = beginTex Tabular1 
 beginTex _ = "" 
 
