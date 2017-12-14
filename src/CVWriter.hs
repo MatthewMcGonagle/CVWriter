@@ -12,7 +12,7 @@ import Text.ParserCombinators.Parsec
 import qualified Text.Parsec.Prim as Prim
 import Text.Parsec.Combinator
 
-data ItemPiece = JustText String | Italic String
+data ItemPiece = JustText String | Italic String | Hyperlink { hyperlabel :: String, url :: String }
     deriving (Show)
 
 type Item= [ItemPiece]
@@ -62,15 +62,29 @@ regularItemPiece = do
                    text <- many1 (noneOf "<")
                    return $ JustText text
 
+hyperlinkItemPiece :: Prim.Parsec String st ItemPiece
+hyperlinkItemPiece = do
+                     lTag "hyperlink"
+                     label <- many1 (noneOf "<")
+                     lTag "url"
+                     spaces
+                     url <- many1 (noneOf "<")
+                     spaces
+                     rTag "hyperlink"
+                     return $ Hyperlink { hyperlabel = label, url = url}
+
 itemPieces :: Prim.Parsec String st Item
 itemPieces = do
-             let piece = try italicItemPiece <|> regularItemPiece
+             let piece = try italicItemPiece 
+                     <|> try hyperlinkItemPiece 
+                     <|> regularItemPiece
              many $ piece
   
 topicItem :: String -> Prim.Parsec [Char] st Item
 topicItem category = do
                      let tagString = "item" ++ category
                      lTag tagString
+                     spaces
                      item <- itemPieces
                      rTag tagString 
                      return item 
@@ -126,7 +140,8 @@ myParseTest = parseTest cvfile
 
 latexHeader :: String
 latexHeader = "\\documentclass{article}\n"
-    ++ "\\usepackage{booktabs}\n\n"
+    ++ "\\usepackage{booktabs}\n"
+    ++ "\\usepackage{hyperref}\n\n"
     ++ "\\begin{document}\n"
 
 latexEnd :: String
@@ -226,10 +241,17 @@ convertItem format = concat . map (convertItemPiece format)
 -- Function to convert item info.
 
 convertItemPiece :: Output -> ItemPiece -> String
+
 convertItemPiece _ (JustText x) = x
+
 convertItemPiece Latex (Italic x) = 
        "\\textit{" ++ x ++ "}"
 convertItemPiece Jekyll (Italic x) = "<i>" ++ x ++ "</i>" 
+
+convertItemPiece Latex (Hyperlink {hyperlabel = label, url = url}) = 
+    "\\href{" ++ url ++ "}{" ++ label ++ "}"
+convertItemPiece Jekyll (Hyperlink {hyperlabel = label, url = url}) =
+    "<a href = \"" ++ url ++ "\">" ++ label ++ "</a>" 
    
 -- Function to make a row with nothing in the title column (i.e. the first column) for Jekyll. This
 -- isn't necessary for LaTeX.

@@ -1,6 +1,6 @@
 <topic1>
 <title> Technical Skills </title>
-<item> C++, Python, Haskell, \LaTeX, Sci-Kit Learn, TensorFlow </item>
+<item> C++, Python, Haskell, \LaTeX, Sci-Kit Learn, TensorFlow, Jupyter Notebooks </item>
 </topic1>
 
 <topic1>
@@ -13,26 +13,31 @@
 
 <item1> GitHub Profile</item1>
 <item2> MatthewMcGonagle</item2>
-<item2> https://github.com/MatthewMcGonagle</item2>
+<item2> <hyperlink>https://github.com/MatthewMcGonagle<url>
+https://github.com/MatthewMcGonagle</hyperlink></item2>
 
 <item1> Detailed Portfolio</item1>
-<item2> https://matthewmcgonagle.github.io/portfolio </item2>
+<item2><hyperlink>https://matthewmcgonagle.github.io/portfolio<url>
+https://matthewmcgonagle.github.io/portfolio</hyperlink> </item2>
 
 <item1> CVWriter </item1>
 <item2> Haskell </item2>
-<item2> https://github.com/MatthewMcGonagle /CVWriter</item2>
+<item2> <hyperlink>https://github.com/MatthewMcGonagle/CVWriter<url>
+https://github.com/MatthewMcGonagle/CVWriter </hyperlink></item2>
 <item2> Takes XML style sheet with info for CV and outputs it to two formats: </item2>
 <item2> 1. A LaTeX .tex file to be converted to pdf. </item2>
 <item2> 2. A Jekyll compatible .html file. </item2>
 
 <item1> Quadratic Field Extension </item1>
 <item2> C++ </item2>
-<item2> https://github.com/QuadraticFieldExtension </item2>
+<item2> <hyperlink>https://github.com/QuadraticFieldExtension<url>
+https://github.com/QuadraticFieldExtension </hyperlink></item2>
 <item2> Library to allow infinite precision arithmetic for numbers made of any number of square roots, such as sqrt(1 + sqrt(2)).</item2>
 
 <item1> Hilbert Draw </item1>
 <item2> Python </item2>
-<item2> https://github.com/MatthewMcGonagle /HilbertDraw</item2>
+<item2> <hyperlink>https://github.com/MatthewMcGonagle /HilbertDraw<url>
+https://github.com/MatthewMcGonagle/HilbertDraw</hyperlink> </item2>
 <item2> Library to take a picture, and draw it using Hilbert fractal-like curves.</item2>
 
 <item1> Blog </item1>
