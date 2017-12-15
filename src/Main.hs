@@ -13,7 +13,7 @@ main = do
     contents <- hGetContents handle
     putStrLn "\nFile loaded."
     let cvinfo = myParse contents 
-        latexString = convertCV Latex <$> cvinfo 
+        latexString = text . convertCV' <$> cvinfo 
         markdownString = convertCV Jekyll <$> cvinfo 
     print latexString
     case latexString of (Right str) -> writeFile "MatthewMcGonagleCV.tex" str

@@ -5,12 +5,15 @@ module CVWriter
 , CV
 , Topic
 , Output (Latex, Jekyll)
+, LatexText (text)
 , convertCV
+, convertCV'
 ) where
 
 import Text.ParserCombinators.Parsec
 import qualified Text.Parsec.Prim as Prim
 import Text.Parsec.Combinator
+
 
 data ItemPiece = JustText String | Italic String | Hyperlink { hyperlabel :: String, url :: String }
     deriving (Show)
@@ -27,6 +30,65 @@ data CV = CV {topics :: [Topic], cvTitle :: String}
 data LatexEnv = Tabular1 | Tabular2 | Section
 
 data Output = Latex | Jekyll
+
+data Row a = Row2 a a | Row3 a a a
+
+class CVConvertible a where
+    emptyCol :: a
+    makeHeader' :: CV -> a
+    makeTable :: [Row a] -> a
+    makeRow :: Row a -> a
+    convertItemPiece' :: ItemPiece -> a
+    convertTitle :: String -> a
+    endDoc :: a
+
+------------------------------     
+-- Latex Parsing
+------------------------------
+
+data LatexText = LatexText {text :: String}
+
+instance Monoid LatexText where
+    mempty = LatexText ""
+    x `mappend` y = LatexText $ (text x) ++ (text y) 
+
+instance CVConvertible LatexText where
+
+    emptyCol = LatexText "     "
+
+    makeHeader' cv = LatexText $  
+           "\\documentclass{article}\n"
+        ++ "\\usepackage{booktabs}\n"
+        ++ "\\usepackage{hyperref}\n\n"
+        ++ "\\begin{document}\n"
+        ++ "\\begin{center}\n"
+        ++ "\\textbf{\\Large " ++ cvTitle cv ++ "}\n"
+        ++ "\\end{center}\n\n"
+
+    makeTable rows = LatexText $   
+           "\\noindent\\begin{tabular}{llp{7cm}}\n" 
+        ++ concat (map (text . makeRow) rows)
+        ++ "\\end{tabular}\n"
+
+    makeRow (Row2 x y) = LatexText $  
+           text x  ++ " & \\multicolumn{2}{l}{" ++ text y ++ "}\\\\\n"
+
+    makeRow (Row3 x y z) = LatexText $  
+           text x ++ " & " ++ text y ++ " & " ++ text z ++ "\\\\\n"
+
+    convertItemPiece' (JustText x) = LatexText $ x
+
+    convertItemPiece' (Italic x) =  LatexText $ "\\textit{" ++ x ++ "}"
+
+    convertItemPiece' (Hyperlink {hyperlabel = label, url = url}) = LatexText $
+           "\\href{" ++ url ++ "}{" ++ label ++ "}"
+
+    convertTitle title = LatexText $
+           "\\textbf{" ++ title ++ "}" 
+
+    endDoc = LatexText $ "\\end{document}\n"
+       
+data JekyllText = JekyllText String
 
 ------------------------------
 -- *.cv Text Parsers
@@ -337,3 +399,45 @@ downloadLink :: String
 downloadLink = 
     " <p> <a href = \"{{site . url}}/cv/MatthewMcGonagleCV.pdf\">Click here</a> if you wish to view my CV as a pdf.</p>\n"
 
+-------------------------------------
+-- Generic CV converter
+-------------------------------------
+
+convertCV' :: (CVConvertible a, Monoid a) => CV -> a  
+convertCV' cv = 
+              makeHeader' cv 
+    `mappend` makeTable tableRows
+    `mappend` endDoc
+    where tableRows = concat $ map convertTopic' (topics cv)
+
+                 
+convertTopic' :: (CVConvertible a, Monoid a) => Topic -> [Row a]
+convertTopic' Topic1 {title = title, items = []} = 
+    [Row2 (convertTitle title) emptyCol ] 
+
+convertTopic' Topic1 {title = title, items = (i:is)} =  
+    firstRow : otherRows
+    where firstRow = Row2 (convertTitle title) (convertItem' i)
+          otherRows = map justItem is
+          justItem i = Row2 emptyCol (convertItem' i)
+
+convertTopic' Topic2 {title = title, itemPairs = []} = 
+    [Row3 (convertTitle title) emptyCol emptyCol]
+
+convertTopic' Topic2 {title = title, itemPairs = (p:ps)} =
+    firstSection ++ otherSections 
+    where firstSection = convertPair (convertTitle title) p
+          otherSections = concat $ map (convertPair emptyCol) ps
+  
+convertPair :: (CVConvertible a, Monoid a) => a -> (Item, [Item]) -> [Row a]
+convertPair title (subtitle, []) = 
+    [Row3 title (convertItem' subtitle) emptyCol]  
+
+convertPair title (subtitle, i : is) = 
+    firstRow : otherRows
+    where firstRow = Row3 title (convertItem' subtitle) (convertItem' i)
+          otherRows = map justColThree is
+          justColThree i = Row3 emptyCol emptyCol (convertItem' i)
+
+convertItem' :: (CVConvertible a, Monoid a) => Item -> a
+convertItem' pieces = mconcat $ map convertItemPiece' pieces
