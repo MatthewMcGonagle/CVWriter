@@ -4,7 +4,6 @@ module CVWriter
 , myParseTest
 , CV
 , Topic
-, Output (Latex, Jekyll)
 , LatexText (text)
 , JekyllText (jtext)
 , convertCV'
@@ -29,21 +28,22 @@ data CV = CV {topics :: [Topic], cvTitle :: String}
 
 data LatexEnv = Tabular1 | Tabular2 | Section
 
-data Output = Latex | Jekyll
-
 data Row a = Row2 a a | Row3 a a a
 
 class CVConvertible a where
     emptyCol :: a
     makeHeader' :: CV -> a
-    makeTable :: [Row a] -> a
+    --makeTable :: [Row a] -> a
+    beginTable :: a
+    endTable :: a
     makeRow :: Row a -> a
     convertItemPiece' :: ItemPiece -> a
     convertTitle :: String -> a
+    topicSeparator :: a
     endDoc :: a
 
 ------------------------------     
--- Latex Parsing
+-- Latex Conversion 
 ------------------------------
 
 data LatexText = LatexText {text :: String}
@@ -65,10 +65,14 @@ instance CVConvertible LatexText where
         ++ "\\textbf{\\Large " ++ cvTitle cv ++ "}\n"
         ++ "\\end{center}\n\n"
 
-    makeTable rows = LatexText $   
-           "\\noindent\\begin{tabular}{llp{7cm}}\n" 
-        ++ concat (map (text . makeRow) rows)
-        ++ "\\end{tabular}\n"
+    -- makeTable rows = LatexText $   
+    --        "\\noindent\\begin{tabular}{llp{7cm}}\n" 
+    --     ++ concat (map (text . makeRow) rows)
+    --     ++ "\\end{tabular}\n"
+
+    beginTable = LatexText $ "\\noindent\\begin{tabular}{llp{7cm}}\n"
+
+    endTable = LatexText $ "\\end{tabular}\n"
 
     makeRow (Row2 x y) = LatexText $  
            text x  ++ " & \\multicolumn{2}{l}{" ++ text y ++ "}\\\\\n"
@@ -86,11 +90,13 @@ instance CVConvertible LatexText where
     convertTitle title = LatexText $
            "\\textbf{" ++ title ++ "}" 
 
+    topicSeparator = LatexText "\\midrule\n"
+
     endDoc = LatexText $ "\\end{document}\n"
        
 
 ------------------------------
--- Jekyll Parsing
+-- Jekyll Conversion 
 ------------------------------
 
 data  JekyllText = JekyllText {jtext :: String}
@@ -113,10 +119,14 @@ instance CVConvertible JekyllText where
 
 
 
-    makeTable rows = JekyllText $
-           "<table>\n"
-        ++ (jtext . mconcat) (map makeRow rows)
-        ++ "</table>\n"
+    -- makeTable rows = JekyllText $
+    --        "<table>\n"
+    --     ++ (jtext . mconcat) (map makeRow rows)
+    --     ++ "</table>\n"
+
+    beginTable = JekyllText "<table>\n"
+
+    endTable = JekyllText "</table>\n"
 
     makeRow (Row2 x y) = JekyllText $  
            myTab 1 ++ "<tr>\n"
@@ -139,6 +149,11 @@ instance CVConvertible JekyllText where
            "<a href = \"" ++ url ++ "\">" ++ label ++ "</a>"
 
     convertTitle title = JekyllText title 
+
+    topicSeparator = JekyllText $ 
+           myTab 1 ++ "<tr style = \"border-bottom: 2px solid black\">\n"
+        ++ myTab 2 ++ "<td colspan = \"100%\"></td>\n"
+        ++ myTab 1 ++ "</tr>\n"
 
     endDoc = JekyllText  "<h2> <a href = \"{{site . url}}/cv/MatthewMcGonagleCV.pdf\">Click here</a> if you wish to view my CV as a pdf.</h2>\n"
 
@@ -272,11 +287,23 @@ myTab n = concat $ replicate n singleTab
 convertCV' :: (CVConvertible a, Monoid a) => CV -> a  
 convertCV' cv = 
               makeHeader' cv 
-    `mappend` makeTable tableRows
+    `mappend` makeTable (topics cv) 
     `mappend` endDoc
-    where tableRows = concat $ map convertTopic' (topics cv)
 
-                 
+makeTable :: (CVConvertible a, Monoid a) => [Topic] -> a
+makeTable ts = 
+    beginTable
+    `mappend` convertAllTopic ts 
+    `mappend` endTable
+ 
+convertAllTopic :: (CVConvertible a, Monoid a) => [Topic] -> a
+convertAllTopic [] = mempty
+convertAllTopic [t] = mconcat . (map makeRow) $ convertTopic' t
+convertAllTopic (t:ts) = 
+    (mconcat . (map makeRow)) (convertTopic' t)
+    `mappend` mconcat (map convertTailTopic ts)
+    where convertTailTopic x = topicSeparator `mappend` (mconcat . (map makeRow)) (convertTopic' x)
+
 convertTopic' :: (CVConvertible a, Monoid a) => Topic -> [Row a]
 convertTopic' Topic1 {title = title, items = []} = 
     [Row2 (convertTitle title) emptyCol ] 
