@@ -14,7 +14,7 @@ main = do
     putStrLn "\nFile loaded."
     let cvinfo = myParse contents 
         latexString = text . convertCV' <$> cvinfo 
-        markdownString = convertCV Jekyll <$> cvinfo 
+        markdownString = jtext . convertCV' <$> cvinfo 
     print latexString
     case latexString of (Right str) -> writeFile "MatthewMcGonagleCV.tex" str
                         (Left err) -> do print "ERROR for cvinfo"
