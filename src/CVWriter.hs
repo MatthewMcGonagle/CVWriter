@@ -28,18 +28,18 @@ data CV = CV {topics :: [Topic], cvTitle :: String}
 
 data LatexEnv = Tabular1 | Tabular2 | Section
 
-data Row a = Row2 a a | Row3 a a a
-
 class CVConvertible a where
     emptyCol :: a
     makeHeader' :: CV -> a
     --makeTable :: [Row a] -> a
     beginTable :: a
     endTable :: a
-    makeRow :: Row a -> a
+    makeRow2 :: a -> a -> a
+    makeRow3 :: a -> a -> a -> a
     convertItemPiece' :: ItemPiece -> a
     convertTitle :: String -> a
     topicSeparator :: a
+    subtopicSeparator :: a
     endDoc :: a
 
 ------------------------------     
@@ -74,11 +74,11 @@ instance CVConvertible LatexText where
 
     endTable = LatexText $ "\\end{tabular}\n"
 
-    makeRow (Row2 x y) = LatexText $  
-           text x  ++ " & \\multicolumn{2}{l}{" ++ text y ++ "}\\\\\n"
+    makeRow2 x y = LatexText $
+        text x ++ " & \\multicolumn{2}{l}{" ++ text y ++ "}\\\\\n"
 
-    makeRow (Row3 x y z) = LatexText $  
-           text x ++ " & " ++ text y ++ " & " ++ text z ++ "\\\\\n"
+    makeRow3 x y z = LatexText $
+        text x ++ " & " ++ text y ++ " & " ++ text z ++ "\\\\\n"
 
     convertItemPiece' (JustText x) = LatexText $ x
 
@@ -91,6 +91,8 @@ instance CVConvertible LatexText where
            "\\textbf{" ++ title ++ "}" 
 
     topicSeparator = LatexText "\\midrule\n"
+
+    subtopicSeparator = LatexText "& ... & .... \\\n"
 
     endDoc = LatexText $ "\\end{document}\n"
        
@@ -128,13 +130,13 @@ instance CVConvertible JekyllText where
 
     endTable = JekyllText "</table>\n"
 
-    makeRow (Row2 x y) = JekyllText $  
+    makeRow2 x y = JekyllText $ 
            myTab 1 ++ "<tr>\n"
         ++ myTab 2 ++ "<th>" ++ jtext x ++ "</th>\n"
         ++ myTab 2 ++ "<td colspan = \"2\">" ++ jtext y ++ "</td>\n"
         ++ myTab 1 ++ "</tr>\n"
 
-    makeRow (Row3 x y z) = JekyllText $  
+    makeRow3 x y z = JekyllText $  
            myTab 1 ++ "<tr>\n"
         ++ myTab 2 ++ "<th>" ++ jtext x ++ "</th>\n"
         ++ myTab 2 ++ "<td>" ++ jtext y ++ "</td>\n"
@@ -154,6 +156,8 @@ instance CVConvertible JekyllText where
            myTab 1 ++ "<tr style = \"border-bottom: 2px solid black\">\n"
         ++ myTab 2 ++ "<td colspan = \"100%\"></td>\n"
         ++ myTab 1 ++ "</tr>\n"
+
+    subtopicSeparator = JekyllText ""
 
     endDoc = JekyllText  "<h2> <a href = \"{{site . url}}/cv/MatthewMcGonagleCV.pdf\">Click here</a> if you wish to view my CV as a pdf.</h2>\n"
 
@@ -298,39 +302,40 @@ makeTable ts =
  
 convertAllTopic :: (CVConvertible a, Monoid a) => [Topic] -> a
 convertAllTopic [] = mempty
-convertAllTopic [t] = mconcat . (map makeRow) $ convertTopic' t
+convertAllTopic [t] = convertTopic t
 convertAllTopic (t:ts) = 
-    (mconcat . (map makeRow)) (convertTopic' t)
+    convertTopic t
     `mappend` mconcat (map convertTailTopic ts)
-    where convertTailTopic x = topicSeparator `mappend` (mconcat . (map makeRow)) (convertTopic' x)
+    where convertTailTopic x = topicSeparator `mappend` (convertTopic x)
 
-convertTopic' :: (CVConvertible a, Monoid a) => Topic -> [Row a]
-convertTopic' Topic1 {title = title, items = []} = 
-    [Row2 (convertTitle title) emptyCol ] 
+convertTopic :: (CVConvertible a, Monoid a) => Topic -> a
 
-convertTopic' Topic1 {title = title, items = (i:is)} =  
-    firstRow : otherRows
-    where firstRow = Row2 (convertTitle title) (convertItem' i)
-          otherRows = map justItem is
-          justItem i = Row2 emptyCol (convertItem' i)
+convertTopic Topic1 {title = title, items = []} = 
+    makeRow2 (convertTitle title) emptyCol 
 
-convertTopic' Topic2 {title = title, itemPairs = []} = 
-    [Row3 (convertTitle title) emptyCol emptyCol]
+convertTopic Topic1 {title = title, items = (i:is)} = 
+    firstRow `mappend` otherRows
+    where firstRow = makeRow2 (convertTitle title) (convertItem i)
+          otherRows = mconcat $ map convertToRow is 
+          convertToRow = (makeRow2 emptyCol) . convertItem
 
-convertTopic' Topic2 {title = title, itemPairs = (p:ps)} =
-    firstSection ++ otherSections 
-    where firstSection = convertPair (convertTitle title) p
-          otherSections = concat $ map (convertPair emptyCol) ps
-  
-convertPair :: (CVConvertible a, Monoid a) => a -> (Item, [Item]) -> [Row a]
-convertPair title (subtitle, []) = 
-    [Row3 title (convertItem' subtitle) emptyCol]  
+convertTopic Topic2 {title = title, itemPairs = []} = 
+    makeRow3 (convertTitle title) emptyCol emptyCol 
 
-convertPair title (subtitle, i : is) = 
-    firstRow : otherRows
-    where firstRow = Row3 title (convertItem' subtitle) (convertItem' i)
-          otherRows = map justColThree is
-          justColThree i = Row3 emptyCol emptyCol (convertItem' i)
+convertTopic Topic2 {title = title, itemPairs = (p:ps)} = 
+    firstSubtopic `mappend` otherSubtopics
+    where firstSubtopic = convertPair (convertTitle title) p 
+          otherSubtopics = mconcat $ map (convertPair emptyCol) ps 
 
-convertItem' :: (CVConvertible a, Monoid a) => Item -> a
-convertItem' pieces = mconcat $ map convertItemPiece' pieces
+convertPair :: (CVConvertible a, Monoid a) => a -> (Item, [Item]) -> a
+convertPair topic (subtopic, []) = 
+    makeRow3 topic (convertItem subtopic) emptyCol 
+
+convertPair topic (subtopic, (i:is)) = 
+    firstRow `mappend` (mconcat otherRows)
+    where firstRow = makeRow3 topic (convertItem subtopic) (convertItem i)
+          otherRows = map makeJustLastCol is
+          makeJustLastCol = (makeRow3 emptyCol emptyCol) . convertItem
+
+convertItem :: (CVConvertible a, Monoid a) => Item -> a
+convertItem pieces = mconcat $ map convertItemPiece' pieces
