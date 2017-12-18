@@ -31,7 +31,6 @@ data LatexEnv = Tabular1 | Tabular2 | Section
 class CVConvertible a where
     emptyCol :: a
     makeHeader' :: CV -> a
-    --makeTable :: [Row a] -> a
     beginTable :: a
     endTable :: a
     makeRow2 :: a -> a -> a
@@ -92,7 +91,7 @@ instance CVConvertible LatexText where
 
     topicSeparator = LatexText "\\midrule\n"
 
-    subtopicSeparator = LatexText "& ... & .... \\\n"
+    subtopicSeparator = LatexText "&  &  \\\\\n"
 
     endDoc = LatexText $ "\\end{document}\n"
        
@@ -325,7 +324,10 @@ convertTopic Topic2 {title = title, itemPairs = []} =
 convertTopic Topic2 {title = title, itemPairs = (p:ps)} = 
     firstSubtopic `mappend` otherSubtopics
     where firstSubtopic = convertPair (convertTitle title) p 
-          otherSubtopics = mconcat $ map (convertPair emptyCol) ps 
+          otherSubtopics = mconcat $ map (addSep . makeEmptyCol1) ps 
+          makeEmptyCol1 = convertPair emptyCol
+          addSep = (subtopicSeparator `mappend` )
+
 
 convertPair :: (CVConvertible a, Monoid a) => a -> (Item, [Item]) -> a
 convertPair topic (subtopic, []) = 
