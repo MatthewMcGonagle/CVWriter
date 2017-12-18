@@ -13,7 +13,7 @@
 <title> Portfolio </title>
 
 <item1> GitHub Profile</item1>
-<item2> MatthewMcGonagle</item2>
+<item2> Account: MatthewMcGonagle</item2>
 <item2> <hyperlink>https://github.com/MatthewMcGonagle<url>
 https://github.com/MatthewMcGonagle</hyperlink></item2>
 
@@ -46,10 +46,17 @@ https://github.com/MatthewMcGonagle/HilbertDraw</hyperlink> </item2>
 https://matthewmcgonagle.github.io/blog/</hyperlink>
 </item2>
 <item2> Noteworthy Posts: </item2>
-<item2> 30 Oct 2017 - <italic> Picture Effects in Tensor Flow </italic> </item2>
+<item2> 30 Oct 2017 - <italic> Picture Effects in Tensor Flow</italic></item2>
 <item2> 21 Nov 2017 - <italic> Random Traversal of A Binary Tree </italic> </item2>
 <item2> 08 Dec 2017 - <italic> A Pitfall of Errors in Parsec Package for Haskell </italic></item2>
 <item2> 03 Nov 2017 - <italic> Drawing a Binary Tree Using Gradient Descent and a Potential Function </italic></item2>
+</topic2>
+
+<topic2>
+<title> Employment </title>
+<item1> 2014 - 2017 </item1>
+<item2> Acting Assistant Professor</item2>
+<item2> University of Washington </item2>
 </topic2>
 
 <topic2>
@@ -69,4 +76,4 @@ https://matthewmcgonagle.github.io/blog/</hyperlink>
 
 </topic2>
 
- 
+

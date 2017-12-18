@@ -56,20 +56,16 @@ instance CVConvertible LatexText where
     emptyCol = LatexText "     "
 
     makeHeader' cv = LatexText $  
-           "\\documentclass{article}\n"
+           "\\documentclass[12pt]{article}\n"
         ++ "\\usepackage{booktabs}\n"
-        ++ "\\usepackage{hyperref}\n\n"
+        ++ "\\usepackage{hyperref}\n"
+        ++ "\\usepackage[a4paper, total={6in, 8in}, margin=0.5in]{geometry}\n\n"
         ++ "\\begin{document}\n"
         ++ "\\begin{center}\n"
         ++ "\\textbf{\\Large " ++ cvTitle cv ++ "}\n"
         ++ "\\end{center}\n\n"
 
-    -- makeTable rows = LatexText $   
-    --        "\\noindent\\begin{tabular}{llp{7cm}}\n" 
-    --     ++ concat (map (text . makeRow) rows)
-    --     ++ "\\end{tabular}\n"
-
-    beginTable = LatexText $ "\\noindent\\begin{tabular}{llp{7cm}}\n"
+    beginTable = LatexText $ "\\noindent\\begin{tabular}{llp{8cm}}\n"
 
     endTable = LatexText $ "\\end{tabular}\n"
 
@@ -91,7 +87,7 @@ instance CVConvertible LatexText where
 
     topicSeparator = LatexText "\\midrule\n"
 
-    subtopicSeparator = LatexText "&  &  \\\\\n"
+    subtopicSeparator = LatexText "\\cmidrule{2-3}\n"
 
     endDoc = LatexText $ "\\end{document}\n"
        
@@ -115,8 +111,8 @@ instance CVConvertible JekyllText where
         ++ "layout: default\n"
         ++ "title: Matthew McGonagle's CV\n"
         ++ "---\n\n" 
-        ++ "<h1>" ++ cvTitle cv ++ "</h1>\n"
         ++ "<h2> <a href = \"{{site . url}}/cv/MatthewMcGonagleCV.pdf\">Click here</a> if you wish to view my CV as a pdf.</h2>\n"
+        ++ "<h1>" ++ cvTitle cv ++ "</h1>\n"
 
 
 
