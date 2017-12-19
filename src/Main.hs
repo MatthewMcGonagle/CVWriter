@@ -11,15 +11,12 @@ main = do
 
     handle <- openFile "info.cv" ReadMode
     contents <- hGetContents handle
-    putStrLn "\nFile loaded."
+    putStrLn "\nFile loaded.\n"
     let cvinfo = myParse contents 
         latexString = text . convertCV' <$> cvinfo 
         markdownString = jtext . convertCV' <$> cvinfo 
     print latexString
     case latexString of (Right str) -> writeFile "MatthewMcGonagleCV.tex" str
-                        (Left err) -> do print "ERROR for cvinfo"
-                                         print err 
+                        (Left err) -> return () 
     case markdownString of (Right str) -> writeFile "index.html" str
-                           (Left err) -> do print "ERROR for cvinfo" 
-                                            print err
-    print cvinfo 
+                           (Left err) -> return () 

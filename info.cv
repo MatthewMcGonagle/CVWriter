@@ -1,79 +1,81 @@
 <title>Matthew McGonagle</title>
-<topic1>
-<title> Technical Skills </title>
-<item> C++, Python, Haskell, \LaTeX, Sci-Kit Learn, TensorFlow, Jupyter Notebooks </item>
-</topic1>
 
-<topic1>
-<title> Tools </title>
+<topic> Technical Skills </topic> 
+<item> C++, Python, Haskell, LaTeX, Sci-Kit Learn, TensorFlow, Jupyter Notebooks </item>
+
+<topic> Tools </topic>
 <item> Vim, Git, GNU Debugger, Jekyll, Inskcape, GNU IMP </item>
-</topic1>
 
-<topic2>
-<title> Portfolio </title>
+<topic> Portfolio </topic>
+<item> 
+    <topic> Detailed Portfolio </topic> 
+    <item> <hyperlink>https://github.com/MatthewMcGonagle<url>
+                      https://github.com/MatthewMcGonagle</hyperlink> 
+    </item>
+    
+    <topic> CVWriter </topic>
+    <item> Haskell <newline>
+           <hyperlink>https://github.com/MatthewMcGonagle/ CVWriter<url>
+                      https://github.com/MatthewMcGonagle/CVWriter </hyperlink> <newline> 
+            Takes XML style sheet with info for CV and outputs it to two formats: <newline> 
+            1. A LaTeX .tex file to be converted to pdf. <newline> 
+            2. A Jekyll compatible .html file. 
+    </item>
 
-<item1> GitHub Profile</item1>
-<item2> Account: MatthewMcGonagle</item2>
-<item2> <hyperlink>https://github.com/MatthewMcGonagle<url>
-https://github.com/MatthewMcGonagle</hyperlink></item2>
+    <topic> Quadratic Field Extension </topic>
+    <item> C++ <newline>
+           <hyperlink>https://github.com/MatthewMcGonagle/ QuadraticFieldExtension<url>
+                      https://github.com/MatthewMcGonagle/QuadraticFieldExtension </hyperlink><newline>
+           Library to allow infinite precision arithmetic for numbers made of any number of square roots, such as sqrt(1 + sqrt(2)).
+    </item>
 
-<item1> Detailed Portfolio</item1>
-<item2><hyperlink>https://matthewmcgonagle.github.io/portfolio<url>
-https://matthewmcgonagle.github.io/portfolio</hyperlink> </item2>
+    <topic> Hilbert Draw </topic>
+    <item> Python <newline>
+           <hyperlink>https://github.com/MatthewMcGonagle /HilbertDraw<url>
+                      https://github.com/MatthewMcGonagle/HilbertDraw</hyperlink> <newline>
+           Library to take a picture, and draw it using Hilbert fractal-like curves.
+    </item>
 
-<item1> CVWriter </item1>
-<item2> Haskell </item2>
-<item2> <hyperlink>https://github.com/MatthewMcGonagle/CVWriter<url>
-https://github.com/MatthewMcGonagle/CVWriter </hyperlink></item2>
-<item2> Takes XML style sheet with info for CV and outputs it to two formats: </item2>
-<item2> 1. A LaTeX .tex file to be converted to pdf. </item2>
-<item2> 2. A Jekyll compatible .html file. </item2>
+    <topic> Blog </topic>
+    <item> <hyperlink>https://matthewmcgonagle.github.io/blog/<url>
+                      https://matthewmcgonagle.github.io/blog/</hyperlink><newline>
+           Noteworthy Posts: <newline> 
+           30 Oct 2017 - <italic> Picture Effects in Tensor Flow</italic><newline>
+           21 Nov 2017 - <italic> Random Traversal of A Binary Tree </italic> <newline>
+           08 Dec 2017 - <italic> A Pitfall of Errors in Parsec Package for Haskell </italic><newline>
+           03 Nov 2017 - <italic> Drawing a Binary Tree Using Gradient Descent and a Potential Function </italic>
+    </item>
+      
+</item>
 
-<item1> Quadratic Field Extension </item1>
-<item2> C++ </item2>
-<item2> <hyperlink>https://github.com/MatthewMcGonagle/ QuadraticFieldExtension<url>
-https://github.com/MatthewMcGonagle/QuadraticFieldExtension </hyperlink></item2>
-<item2> Library to allow infinite precision arithmetic for numbers made of any number of square roots, such as sqrt(1 + sqrt(2)).</item2>
+<topic> Employment </topic> 
+<item>
+    <topic>2014 - 2017 </topic>
+    <item> Acting Assistant Professor<newline>
+           University of Washington 
+    </item>
+</item>
 
-<item1> Hilbert Draw </item1>
-<item2> Python </item2>
-<item2> <hyperlink>https://github.com/MatthewMcGonagle /HilbertDraw<url>
-https://github.com/MatthewMcGonagle/HilbertDraw</hyperlink> </item2>
-<item2> Library to take a picture, and draw it using Hilbert fractal-like curves.</item2>
+<topic> Education </topic>
+<item> 
+    <topic> 2010 - 2014 </topic>
+    <item> Ph.D., Mathematics <newline>
+          Johns Hopkins University 
+    </item>
 
-<item1> Blog </item1>
-<item2> <hyperlink>https://matthewmcgonagle.github.io/blog/<url>
-https://matthewmcgonagle.github.io/blog/</hyperlink>
-</item2>
-<item2> Noteworthy Posts: </item2>
-<item2> 30 Oct 2017 - <italic> Picture Effects in Tensor Flow</italic></item2>
-<item2> 21 Nov 2017 - <italic> Random Traversal of A Binary Tree </italic> </item2>
-<item2> 08 Dec 2017 - <italic> A Pitfall of Errors in Parsec Package for Haskell </italic></item2>
-<item2> 03 Nov 2017 - <italic> Drawing a Binary Tree Using Gradient Descent and a Potential Function </italic></item2>
-</topic2>
+    <topic> 2008 - 2010 </topic>
+    <item> M.A., Mathematics <newline>
+           Johns Hopkins University 
+    </item>
 
-<topic2>
-<title> Employment </title>
-<item1> 2014 - 2017 </item1>
-<item2> Acting Assistant Professor</item2>
-<item2> University of Washington </item2>
-</topic2>
+    <topic> 2004 - 2008 </topic>
+    <item> Dual Degrees at University of Maryland <newline>
+           B.S., Mathematics <newline>
+           B.S., Physics 
+    </item>
 
-<topic2>
-<title> Education </title>
-<item1> 2010 - 2014 </item1>
-<item2> Ph.D., Mathematics</item2>
-<item2> Johns Hopkins University </item2>
+</item>
 
-<item1> 2008 - 2010 </item1>
-<item2> M.A., Mathematics</item2>
-<item2> Johns Hopkins University </item2>
-
-<item1> 2004 - 2008 </item1>
-<item2> Dual Degrees at University of Maryland</item2>
-<item2> B.S., Mathematics </item2>
-<item2> B.S., Physics</item2>
-
-</topic2>
-
+<topic> Interests </topic>
+<item> Math, Bodyweight Exercises, Starcraft, Traditional Wet Shaving </item>
 

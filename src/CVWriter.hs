@@ -14,13 +14,16 @@ import qualified Text.Parsec.Prim as Prim
 import Text.Parsec.Combinator
 
 
-data ItemPiece = JustText String | Italic String | Hyperlink { hyperlabel :: String, url :: String }
+data ItemAtom =  JustText String 
+               | Italic String 
+               | Hyperlink { hyperlabel :: String, url :: String }
+               | Newline
+               deriving (Show)
+
+data Item = Atoms [ItemAtom] | NestedTopics [Topic]
     deriving (Show)
 
-type Item= [ItemPiece]
-
-data Topic =   Topic1 {title :: String, items :: [Item]}
-             | Topic2 {title :: String, itemPairs :: [(Item, [Item])]} 
+data Topic =   Topic {title :: String, item :: Item}
     deriving (Show)
 
 data CV = CV {topics :: [Topic], cvTitle :: String}
@@ -30,16 +33,19 @@ data LatexEnv = Tabular1 | Tabular2 | Section
 
 class CVConvertible a where
     emptyCol :: a
-    makeHeader' :: CV -> a
+    makeHeader :: CV -> a
     beginTable :: a
     endTable :: a
-    makeRow2 :: a -> a -> a
-    makeRow3 :: a -> a -> a -> a
-    convertItemPiece' :: ItemPiece -> a
+    beginSubtable :: a -- Latex needs special characters for sub-table formatting.
+    endSubtable :: a
+    makeRow :: a -> a -> a
+    convertItemAtom :: ItemAtom -> a
     convertTitle :: String -> a
     topicSeparator :: a
     subtopicSeparator :: a
     endDoc :: a
+    paragraph :: a -> a
+    parNewLine :: a
 
 ------------------------------     
 -- Latex Conversion 
@@ -55,7 +61,7 @@ instance CVConvertible LatexText where
 
     emptyCol = LatexText "     "
 
-    makeHeader' cv = LatexText $  
+    makeHeader cv = LatexText $  
            "\\documentclass[12pt]{article}\n"
         ++ "\\usepackage{booktabs}\n"
         ++ "\\usepackage{hyperref}\n"
@@ -65,22 +71,25 @@ instance CVConvertible LatexText where
         ++ "\\textbf{\\Large " ++ cvTitle cv ++ "}\n"
         ++ "\\end{center}\n\n"
 
-    beginTable = LatexText $ "\\noindent\\begin{tabular}{llp{8cm}}\n"
+    beginTable = LatexText $ "\\noindent\\begin{tabular}{ll}\n"
 
     endTable = LatexText $ "\\end{tabular}\n"
 
-    makeRow2 x y = LatexText $
-        text x ++ " & \\multicolumn{2}{l}{" ++ text y ++ "}\\\\\n"
+    beginSubtable = LatexText $ "\\begin{tabular}{@{}lp{8cm}@{}}\n"
+    
+    endSubtable = LatexText $ "\\end{tabular}\n"
 
-    makeRow3 x y z = LatexText $
-        text x ++ " & " ++ text y ++ " & " ++ text z ++ "\\\\\n"
+    makeRow x y = LatexText $
+        text x ++ " & " ++ text y ++ "\\\\\n"
 
-    convertItemPiece' (JustText x) = LatexText $ x
+    convertItemAtom (JustText x) = LatexText $ x
 
-    convertItemPiece' (Italic x) =  LatexText $ "\\textit{" ++ x ++ "}"
+    convertItemAtom (Italic x) =  LatexText $ "\\textit{" ++ x ++ "}"
 
-    convertItemPiece' (Hyperlink {hyperlabel = label, url = url}) = LatexText $
+    convertItemAtom (Hyperlink {hyperlabel = label, url = url}) = LatexText $
            "\\href{" ++ url ++ "}{" ++ label ++ "}"
+    
+    convertItemAtom Newline = LatexText "\\newline "
 
     convertTitle title = LatexText $
            "\\textbf{" ++ title ++ "}" 
@@ -90,6 +99,10 @@ instance CVConvertible LatexText where
     subtopicSeparator = LatexText "\\cmidrule{2-3}\n"
 
     endDoc = LatexText $ "\\end{document}\n"
+
+    paragraph x = x
+
+    parNewLine = LatexText $ "\\newline\n" ++ myTab 2
        
 
 ------------------------------
@@ -106,7 +119,7 @@ instance CVConvertible JekyllText where
 
     emptyCol = JekyllText ""
    
-    makeHeader' cv = JekyllText $ 
+    makeHeader cv = JekyllText $ 
            "---\n"
         ++ "layout: default\n"
         ++ "title: Matthew McGonagle's CV\n"
@@ -114,47 +127,47 @@ instance CVConvertible JekyllText where
         ++ "<h2> <a href = \"{{site . url}}/cv/MatthewMcGonagleCV.pdf\">Click here</a> if you wish to view my CV as a pdf.</h2>\n"
         ++ "<h1>" ++ cvTitle cv ++ "</h1>\n"
 
-
-
-    -- makeTable rows = JekyllText $
-    --        "<table>\n"
-    --     ++ (jtext . mconcat) (map makeRow rows)
-    --     ++ "</table>\n"
-
     beginTable = JekyllText "<table>\n"
 
     endTable = JekyllText "</table>\n"
 
-    makeRow2 x y = JekyllText $ 
-           myTab 1 ++ "<tr>\n"
-        ++ myTab 2 ++ "<th>" ++ jtext x ++ "</th>\n"
-        ++ myTab 2 ++ "<td colspan = \"2\">" ++ jtext y ++ "</td>\n"
-        ++ myTab 1 ++ "</tr>\n"
+    beginSubtable = beginTable
+    
+    endSubtable = endTable
 
-    makeRow3 x y z = JekyllText $  
+    makeRow x y = JekyllText $ 
            myTab 1 ++ "<tr>\n"
         ++ myTab 2 ++ "<th>" ++ jtext x ++ "</th>\n"
         ++ myTab 2 ++ "<td>" ++ jtext y ++ "</td>\n"
-        ++ myTab 2 ++ "<td>" ++ jtext z ++ "</td>\n"
         ++ myTab 1 ++ "</tr>\n"
 
-    convertItemPiece' (JustText x) = JekyllText $ x
+    convertItemAtom (JustText x) = JekyllText $ x
 
-    convertItemPiece' (Italic x) =  JekyllText $ "<i>" ++ x ++ "</i>"
+    convertItemAtom (Italic x) =  JekyllText $ "<i>" ++ x ++ "</i>"
 
-    convertItemPiece' (Hyperlink {hyperlabel = label, url = url}) = JekyllText $
+    convertItemAtom (Hyperlink {hyperlabel = label, url = url}) = JekyllText $
            "<a href = \"" ++ url ++ "\">" ++ label ++ "</a>"
+
+    convertItemAtom Newline = JekyllText "<br/>"
 
     convertTitle title = JekyllText title 
 
     topicSeparator = JekyllText $ 
-           myTab 1 ++ "<tr style = \"border-bottom: 2px solid black\">\n"
-        ++ myTab 2 ++ "<td colspan = \"100%\"></td>\n"
+           myTab 1 ++ "<tr>\n"
+        ++ myTab 2 ++ "<td colspan = \"100%\"; style = \"border-bottom: 1px solid black\"></td>\n"
         ++ myTab 1 ++ "</tr>\n"
 
-    subtopicSeparator = JekyllText ""
+    subtopicSeparator = JekyllText $
+           myTab 1 ++ "<tr>\n"
+        ++ myTab 2 ++ "<td></td>\n"
+        ++ myTab 2 ++ "<td colspan = \"2\"; style = \"border-bottom: 1px solid black\"></td>\n"
+        ++ myTab 1 ++ "</tr>\n" 
 
     endDoc = JekyllText  "<h2> <a href = \"{{site . url}}/cv/MatthewMcGonagleCV.pdf\">Click here</a> if you wish to view my CV as a pdf.</h2>\n"
+
+    paragraph x = JekyllText $ "<p>" ++ jtext x ++ "</p>"
+
+    parNewLine = JekyllText $ "<br/>\n" ++ myTab 2
 
 ------------------------------
 -- *.cv Text Parsers
@@ -170,52 +183,63 @@ lTag :: String -> Prim.Parsec [Char] st String
 lTag name = do
        lBracket
        spaces
-       try (string name) <?> name 
+       try (string name) <?> "string \"" ++ name ++ "\"" 
        spaces
-       try rBracket <?> ">" 
+       try rBracket <?> "> for lTag " ++ name 
        return name
 
 rTag :: String -> Prim.Parsec [Char] st String
 rTag name = lTag $ "/" ++ name 
 
-italicItemPiece :: Prim.Parsec String st ItemPiece
-italicItemPiece = do
-                  lTag "italic"
-                  text <- many1 (noneOf "<")
-                  try (rTag "italic") <?> "rTag </italic>" 
-                  return $ Italic text
+italicAtom :: Prim.Parsec String st ItemAtom
+italicAtom = do
+             lTag "italic"
+             text <- try (many1 $ noneOf "<") <?> "text to italicize"
+             try (rTag "italic") <?> "rTag italic" 
+             spaces
+             return $ Italic text
 
-regularItemPiece :: Prim.Parsec String st ItemPiece
-regularItemPiece = do
-                   text <- many1 (noneOf "<")
-                   return $ JustText text
+regularAtom :: Prim.Parsec String st ItemAtom
+regularAtom = do
+              text <- try (many1 $ noneOf "<") <?> "regular text"
+              return $ JustText text
 
-hyperlinkItemPiece :: Prim.Parsec String st ItemPiece
-hyperlinkItemPiece = do
-                     lTag "hyperlink"
-                     label <- many1 (noneOf "<")
-                     lTag "url"
-                     spaces
-                     url <- many1 (noneOf "<")
-                     spaces
-                     rTag "hyperlink"
-                     return $ Hyperlink { hyperlabel = label, url = url}
+hyperlinkAtom :: Prim.Parsec String st ItemAtom
+hyperlinkAtom = do
+                lTag "hyperlink"
+                label <- try (many1 $ noneOf "<") <?> "hyperlink label" 
+                lTag "url"
+                spaces
+                url <- try (many1 $ noneOf "<") <?> "hyperlink url"
+                spaces
+                rTag "hyperlink"
+                spaces
+                return $ Hyperlink {hyperlabel = label, url = url}
 
-itemPieces :: Prim.Parsec String st Item
-itemPieces = do
-             let piece = try italicItemPiece 
-                     <|> try hyperlinkItemPiece 
-                     <|> regularItemPiece
-             many $ piece
-  
-topicItem :: String -> Prim.Parsec [Char] st Item
-topicItem category = do
-                     let tagString = "item" ++ category
-                     lTag tagString
-                     spaces
-                     item <- itemPieces
-                     rTag tagString 
-                     return item 
+newlineAtom :: Prim.Parsec String st ItemAtom
+newlineAtom = do
+              lTag "newline"
+              spaces
+              return Newline
+
+atoms :: Prim.Parsec String st Item
+atoms = do
+        let atom =     try italicAtom
+                   <|> try hyperlinkAtom
+                   <|> try newlineAtom
+                   <|> try regularAtom
+                   <?> "atom"
+        atomlist <- many1 $ atom 
+        return $ Atoms atomlist 
+ 
+-- Remember to parse subtopic before parsing atoms. 
+topicItem :: Prim.Parsec [Char] st Item
+topicItem = do
+            let subtopics = do 
+                            subs <- endBy1 (try topic) spaces
+                            return $ NestedTopics subs 
+            item <- try subtopics <|> atoms 
+            return item 
 
 titleBlock :: Prim.Parsec [Char] st String
 titleBlock = do
@@ -224,36 +248,21 @@ titleBlock = do
              rTag "title"
              return title
 
-topic1 :: Prim.Parsec [Char] st Topic 
-topic1 = do
-         lTag "topic1"
-         spaces
-         topicTitle <- titleBlock 
-         spaces
-         rCol <- endBy (try $ topicItem "") spaces
-         try (rTag "topic1")
-             <?> "rTag </topic1>"
-         return $ Topic1 {title = topicTitle, items = rCol}
+topic :: Prim.Parsec [Char] st Topic 
+topic = do
+        lTag "topic"
+        topicTitle <- many1 $ noneOf "<"
+        rTag "topic"
+        spaces
+        lTag "item"
+        spaces
+        item <- topicItem 
+        spaces
+        rTag "item"
+        return $ Topic {title = topicTitle, item = item}
 
-itemPair :: Prim.Parsec [Char] st (Item, [Item])
-itemPair = do
-           first <- topicItem "1"
-           spaces
-           second <- endBy (try $ topicItem "2") spaces
-           return (first, second) 
-
-topic2 :: Prim.Parsec [Char] st Topic
-topic2 = do
-         lTag "topic2"
-         spaces
-         topicTitle <- titleBlock 
-         spaces
-         itemPairs <- endBy (try itemPair) spaces
-         rTag "topic2"
-         return $ Topic2 {title = topicTitle, itemPairs = itemPairs} 
-        
 topicList :: Prim.Parsec [Char] st [Topic]
-topicList = endBy (try topic1 <|> topic2) spaces 
+topicList = endBy topic spaces 
             
 cvfile :: Prim.Parsec String st CV
 cvfile = do
@@ -285,55 +294,44 @@ myTab n = concat $ replicate n singleTab
 
 convertCV' :: (CVConvertible a, Monoid a) => CV -> a  
 convertCV' cv = 
-              makeHeader' cv 
-    `mappend` makeTable (topics cv) 
+              makeHeader cv 
+    `mappend` convertTopicList (topics cv) 
     `mappend` endDoc
 
-makeTable :: (CVConvertible a, Monoid a) => [Topic] -> a
-makeTable ts = 
+convertTopicList :: (CVConvertible a, Monoid a) => [Topic] -> a
+
+convertTopicList [] = mempty
+
+convertTopicList [t] = 
     beginTable
-    `mappend` convertAllTopic ts 
+    `mappend` convertTopic t
     `mappend` endTable
- 
-convertAllTopic :: (CVConvertible a, Monoid a) => [Topic] -> a
-convertAllTopic [] = mempty
-convertAllTopic [t] = convertTopic t
-convertAllTopic (t:ts) = 
-    convertTopic t
+
+convertTopicList (t:ts) = 
+    beginTable
+    `mappend` convertTopic t
     `mappend` mconcat (map convertTailTopic ts)
+    `mappend` endTable
     where convertTailTopic x = topicSeparator `mappend` (convertTopic x)
 
 convertTopic :: (CVConvertible a, Monoid a) => Topic -> a
-
-convertTopic Topic1 {title = title, items = []} = 
-    makeRow2 (convertTitle title) emptyCol 
-
-convertTopic Topic1 {title = title, items = (i:is)} = 
-    firstRow `mappend` otherRows
-    where firstRow = makeRow2 (convertTitle title) (convertItem i)
-          otherRows = mconcat $ map convertToRow is 
-          convertToRow = (makeRow2 emptyCol) . convertItem
-
-convertTopic Topic2 {title = title, itemPairs = []} = 
-    makeRow3 (convertTitle title) emptyCol emptyCol 
-
-convertTopic Topic2 {title = title, itemPairs = (p:ps)} = 
-    firstSubtopic `mappend` otherSubtopics
-    where firstSubtopic = convertPair (convertTitle title) p 
-          otherSubtopics = mconcat $ map (addSep . makeEmptyCol1) ps 
-          makeEmptyCol1 = convertPair emptyCol
-          addSep = (subtopicSeparator `mappend` )
-
-
-convertPair :: (CVConvertible a, Monoid a) => a -> (Item, [Item]) -> a
-convertPair topic (subtopic, []) = 
-    makeRow3 topic (convertItem subtopic) emptyCol 
-
-convertPair topic (subtopic, (i:is)) = 
-    firstRow `mappend` (mconcat otherRows)
-    where firstRow = makeRow3 topic (convertItem subtopic) (convertItem i)
-          otherRows = map makeJustLastCol is
-          makeJustLastCol = (makeRow3 emptyCol emptyCol) . convertItem
+convertTopic x = makeRow (convertTitle $ title x) (convertItem $ item x) 
 
 convertItem :: (CVConvertible a, Monoid a) => Item -> a
-convertItem pieces = mconcat $ map convertItemPiece' pieces
+convertItem (Atoms atoms) = mconcat $ map convertItemAtom atoms 
+convertItem (NestedTopics ts) = convertSubtopics ts 
+
+convertSubtopics :: (CVConvertible a, Monoid a) => [Topic] -> a
+convertSubtopics [] = mempty
+convertSubtopics [t] =
+    beginSubtable
+    `mappend` convertTopic t
+    `mappend` endSubtable
+
+convertSubtopics (t:ts) = 
+    beginSubtable
+    `mappend` convertTopic t
+    `mappend` mconcat (map convertTailTopic ts)
+    `mappend` endSubtable 
+    where convertTailTopic x = topicSeparator `mappend` (convertTopic x)
+
