@@ -12,6 +12,7 @@ module CVWriter
 import Text.ParserCombinators.Parsec
 import qualified Text.Parsec.Prim as Prim
 import Text.Parsec.Combinator
+import qualified Control.Monad.State as Ctl 
 
 
 data ItemAtom =  JustText String 
@@ -29,23 +30,20 @@ data Topic =   Topic {title :: String, item :: Item}
 data CV = CV {topics :: [Topic], cvTitle :: String}
     deriving (Show)
 
-data LatexEnv = Tabular1 | Tabular2 | Section
+type NestLevel = Int
 
 class CVConvertible a where
     emptyCol :: a
+    indent :: NestLevel -> a
     makeHeader :: CV -> a
-    beginTable :: a
-    endTable :: a
-    beginSubtable :: a -- Latex needs special characters for sub-table formatting.
-    endSubtable :: a
-    makeRow :: a -> a -> a
-    convertItemAtom :: ItemAtom -> a
+    beginTable :: NestLevel -> a -- Latex needs special characters for sub-table formatting.
+    endTable :: NestLevel -> a
+    makeRow :: NestLevel -> a -> a -> a
+    convertItemAtom :: NestLevel -> ItemAtom -> a
     convertTitle :: String -> a
-    topicSeparator :: a
-    subtopicSeparator :: a
+    topicSeparator :: NestLevel -> a
     endDoc :: a
     paragraph :: a -> a
-    parNewLine :: a
 
 ------------------------------     
 -- Latex Conversion 
@@ -61,6 +59,8 @@ instance CVConvertible LatexText where
 
     emptyCol = LatexText "     "
 
+    indent n = LatexText $ replicate (4 * (n + 1)) ' '
+
     makeHeader cv = LatexText $  
            "\\documentclass[12pt]{article}\n"
         ++ "\\usepackage{booktabs}\n"
@@ -71,39 +71,34 @@ instance CVConvertible LatexText where
         ++ "\\textbf{\\Large " ++ cvTitle cv ++ "}\n"
         ++ "\\end{center}\n\n"
 
-    beginTable = LatexText $ "\\noindent\\begin{tabular}{ll}\n"
+    beginTable 0 = LatexText $ "\\noindent\\begin{tabular}{ll}\n"
+    beginTable n = LatexText $ text (indent n) ++ "\\begin{tabular}{@{}lp{8cm}@{}}\n"
 
-    endTable = LatexText $ "\\end{tabular}\n"
+    endTable n = LatexText $ text (indent n) ++ "\\end{tabular}\n"
 
-    beginSubtable = LatexText $ "\\begin{tabular}{@{}lp{8cm}@{}}\n"
-    
-    endSubtable = LatexText $ "\\end{tabular}\n"
+    makeRow 0 x y = LatexText $
+        text (indent 0) ++ "\\textbf{" ++ text x ++ "} & " ++ text y ++ "\\\\\n"
+    makeRow n x y = LatexText $
+        text (indent n) ++ text x ++ " & " ++ text y ++ "\\\\\n"
 
-    makeRow x y = LatexText $
-        text x ++ " & " ++ text y ++ "\\\\\n"
+    convertItemAtom _ (JustText x) = LatexText $ x
 
-    convertItemAtom (JustText x) = LatexText $ x
+    convertItemAtom _ (Italic x) =  LatexText $ "\\textit{" ++ x ++ "}"
 
-    convertItemAtom (Italic x) =  LatexText $ "\\textit{" ++ x ++ "}"
-
-    convertItemAtom (Hyperlink {hyperlabel = label, url = url}) = LatexText $
+    convertItemAtom _ (Hyperlink {hyperlabel = label, url = url}) = LatexText $
            "\\href{" ++ url ++ "}{" ++ label ++ "}"
     
-    convertItemAtom Newline = LatexText "\\newline "
+    convertItemAtom n Newline = LatexText $ "\\newline\n" ++ (text . indent) ( n + 1 )
 
-    convertTitle title = LatexText $
-           "\\textbf{" ++ title ++ "}" 
+    convertTitle x = LatexText x
 
-    topicSeparator = LatexText "\\midrule\n"
-
-    subtopicSeparator = LatexText "\\cmidrule{2-3}\n"
+    topicSeparator 0 = LatexText "\\midrule\n"
+    topicSeparator n = LatexText $ text (indent n) ++ "\\midrule\n"
 
     endDoc = LatexText $ "\\end{document}\n"
 
     paragraph x = x
 
-    parNewLine = LatexText $ "\\newline\n" ++ myTab 2
-       
 
 ------------------------------
 -- Jekyll Conversion 
@@ -118,6 +113,8 @@ instance Monoid JekyllText where
 instance CVConvertible JekyllText where
 
     emptyCol = JekyllText ""
+
+    indent n = JekyllText $ replicate (4 * (n + 1)) ' '
    
     makeHeader cv = JekyllText $ 
            "---\n"
@@ -127,47 +124,43 @@ instance CVConvertible JekyllText where
         ++ "<h2> <a href = \"{{site . url}}/cv/MatthewMcGonagleCV.pdf\">Click here</a> if you wish to view my CV as a pdf.</h2>\n"
         ++ "<h1>" ++ cvTitle cv ++ "</h1>\n"
 
-    beginTable = JekyllText "<table>\n"
+    beginTable n = JekyllText $ jtext (indent n) ++ "<table>\n"
 
-    endTable = JekyllText "</table>\n"
+    endTable n = JekyllText $ jtext (indent n) ++ "</table>\n"
 
-    beginSubtable = beginTable
-    
-    endSubtable = endTable
+    makeRow 0 x y = JekyllText $ 
+           indent0 ++ "<tr>\n"
+        ++ indent0 ++ "<th>" ++ jtext x ++ "</th>\n"
+        ++ indent0 ++ "<td>" ++ jtext y ++ "</td>\n"
+        ++ indent0 ++ "</tr>\n"
+        where indent0 = jtext $ indent 0 
+    makeRow n x y = JekyllText $ 
+           indentn ++ "<tr>\n"
+        ++ indentn ++ "<td>" ++ jtext x ++ "</td>\n"
+        ++ indentn ++ "<td>" ++ jtext y ++ "</td>\n"
+        ++ indentn ++ "</tr>\n"
+        where indentn = jtext $ indent n 
 
-    makeRow x y = JekyllText $ 
-           myTab 1 ++ "<tr>\n"
-        ++ myTab 2 ++ "<th>" ++ jtext x ++ "</th>\n"
-        ++ myTab 2 ++ "<td>" ++ jtext y ++ "</td>\n"
-        ++ myTab 1 ++ "</tr>\n"
+    convertItemAtom _ (JustText x) = JekyllText $ x
 
-    convertItemAtom (JustText x) = JekyllText $ x
+    convertItemAtom _ (Italic x) =  JekyllText $ "<i>" ++ x ++ "</i>"
 
-    convertItemAtom (Italic x) =  JekyllText $ "<i>" ++ x ++ "</i>"
-
-    convertItemAtom (Hyperlink {hyperlabel = label, url = url}) = JekyllText $
+    convertItemAtom _ (Hyperlink {hyperlabel = label, url = url}) = JekyllText $
            "<a href = \"" ++ url ++ "\">" ++ label ++ "</a>"
 
-    convertItemAtom Newline = JekyllText "<br/>"
+    convertItemAtom n Newline = JekyllText $ jtext (indent n) ++ "<br/>"
 
-    convertTitle title = JekyllText title 
+    convertTitle x = JekyllText x
 
-    topicSeparator = JekyllText $ 
-           myTab 1 ++ "<tr>\n"
-        ++ myTab 2 ++ "<td colspan = \"100%\"; style = \"border-bottom: 1px solid black\"></td>\n"
-        ++ myTab 1 ++ "</tr>\n"
-
-    subtopicSeparator = JekyllText $
-           myTab 1 ++ "<tr>\n"
-        ++ myTab 2 ++ "<td></td>\n"
-        ++ myTab 2 ++ "<td colspan = \"2\"; style = \"border-bottom: 1px solid black\"></td>\n"
-        ++ myTab 1 ++ "</tr>\n" 
+    topicSeparator n = JekyllText $ 
+           indentn ++ "<tr>\n"
+        ++ indentn ++ "<td colspan = \"100%\"; style = \"border-bottom: 1px solid black\"></td>\n"
+        ++ indentn ++ "</tr>\n"
+        where indentn = jtext $ indent n 
 
     endDoc = JekyllText  "<h2> <a href = \"{{site . url}}/cv/MatthewMcGonagleCV.pdf\">Click here</a> if you wish to view my CV as a pdf.</h2>\n"
 
     paragraph x = JekyllText $ "<p>" ++ jtext x ++ "</p>"
-
-    parNewLine = JekyllText $ "<br/>\n" ++ myTab 2
 
 ------------------------------
 -- *.cv Text Parsers
@@ -295,43 +288,62 @@ myTab n = concat $ replicate n singleTab
 convertCV' :: (CVConvertible a, Monoid a) => CV -> a  
 convertCV' cv = 
               makeHeader cv 
-    `mappend` convertTopicList (topics cv) 
+    `mappend` body 
     `mappend` endDoc
+    where body = fst $ topicsWIndent
+          topicsWIndent = Ctl.runState (convertTopicList $ topics cv) 0
 
-convertTopicList :: (CVConvertible a, Monoid a) => [Topic] -> a
+convertTopicList :: (CVConvertible a, Monoid a) => [Topic] -> Ctl.State NestLevel a
 
-convertTopicList [] = mempty
+convertTopicList [] = return mempty
 
 convertTopicList [t] = 
-    beginTable
-    `mappend` convertTopic t
-    `mappend` endTable
+    do 
+    nestLevel <- Ctl.get
+    t' <- convertTopic t
+    return $ beginTable nestLevel 
+             `mappend` t' 
+             `mappend` endTable nestLevel
 
 convertTopicList (t:ts) = 
-    beginTable
-    `mappend` convertTopic t
-    `mappend` mconcat (map convertTailTopic ts)
-    `mappend` endTable
-    where convertTailTopic x = topicSeparator `mappend` (convertTopic x)
+    do
+    nestLevel <- Ctl.get
+    t' <- convertTopic t
+    let convertTailTopic x = 
+            do
+            nestLevel' <- Ctl.get
+            x' <- convertTopic x
+            return $ topicSeparator nestLevel' `mappend` x' 
+    ts' <- mapM convertTailTopic ts 
+    return $ beginTable nestLevel
+             `mappend` t' 
+             `mappend` mconcat ts' 
+             `mappend` endTable nestLevel
 
-convertTopic :: (CVConvertible a, Monoid a) => Topic -> a
-convertTopic x = makeRow (convertTitle $ title x) (convertItem $ item x) 
+-- convertTopic :: (CVConvertible a, Monoid a) => Topic -> a
+-- convertTopic x = makeRow (convertTitle $ title x) (convertItem $ item x) 
 
-convertItem :: (CVConvertible a, Monoid a) => Item -> a
-convertItem (Atoms atoms) = mconcat $ map convertItemAtom atoms 
-convertItem (NestedTopics ts) = convertSubtopics ts 
+convertTopic :: (CVConvertible a, Monoid a) => Topic -> Ctl.State NestLevel a
+convertTopic x = do
+                 nestLevel <- Ctl.get 
+                 x' <- convertItem $ item x
+                 return $ makeRow nestLevel (convertTitle $ title x) x' 
 
-convertSubtopics :: (CVConvertible a, Monoid a) => [Topic] -> a
-convertSubtopics [] = mempty
-convertSubtopics [t] =
-    beginSubtable
-    `mappend` convertTopic t
-    `mappend` endSubtable
+-- convertItem :: (CVConvertible a, Monoid a) => Item -> a
+-- convertItem (Atoms atoms) = mconcat $ map convertItemAtom atoms 
+-- convertItem (NestedTopics ts) = convertSubtopics ts 
 
-convertSubtopics (t:ts) = 
-    beginSubtable
-    `mappend` convertTopic t
-    `mappend` mconcat (map convertTailTopic ts)
-    `mappend` endSubtable 
-    where convertTailTopic x = topicSeparator `mappend` (convertTopic x)
+convertItem :: (CVConvertible a, Monoid a) => Item -> Ctl.State NestLevel a
+convertItem (Atoms atoms) = 
+    do
+    nestLevel <- Ctl.get 
+    let atoms' = map (convertItemAtom nestLevel) atoms
+    return $ mconcat atoms'
 
+convertItem (NestedTopics ts) = 
+    do
+    nestedLevel <- Ctl.get
+    Ctl.put $ nestedLevel + 1
+    ts' <- convertTopicList ts 
+    Ctl.put nestedLevel
+    return $ ts'
