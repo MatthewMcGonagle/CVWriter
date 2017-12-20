@@ -77,9 +77,9 @@ instance CVConvertible LatexText where
     endTable n = LatexText $ text (indent n) ++ "\\end{tabular}\n"
 
     makeRow 0 x y = LatexText $
-        text (indent 0) ++ "\\textbf{" ++ text x ++ "} & " ++ text y ++ "\\\\\n"
+        text (indent 0) ++ "\\textbf{" ++ text x ++ "} & " ++ text y ++ "\\\\\n\n"
     makeRow n x y = LatexText $
-        text (indent n) ++ text x ++ " & " ++ text y ++ "\\\\\n"
+        text (indent n) ++ text x ++ " & " ++ text y ++ "\\\\\n\n"
 
     convertItemAtom _ (JustText x) = LatexText $ x
 
@@ -132,13 +132,13 @@ instance CVConvertible JekyllText where
            indent0 ++ "<tr>\n"
         ++ indent0 ++ "<th>" ++ jtext x ++ "</th>\n"
         ++ indent0 ++ "<td>" ++ jtext y ++ "</td>\n"
-        ++ indent0 ++ "</tr>\n"
+        ++ indent0 ++ "</tr>\n\n"
         where indent0 = jtext $ indent 0 
     makeRow n x y = JekyllText $ 
            indentn ++ "<tr>\n"
         ++ indentn ++ "<td>" ++ jtext x ++ "</td>\n"
         ++ indentn ++ "<td>" ++ jtext y ++ "</td>\n"
-        ++ indentn ++ "</tr>\n"
+        ++ indentn ++ "</tr>\n\n"
         where indentn = jtext $ indent n 
 
     convertItemAtom _ (JustText x) = JekyllText $ x
