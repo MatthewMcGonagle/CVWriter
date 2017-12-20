@@ -148,7 +148,7 @@ instance CVConvertible JekyllText where
     convertItemAtom _ (Hyperlink {hyperlabel = label, url = url}) = JekyllText $
            "<a href = \"" ++ url ++ "\">" ++ label ++ "</a>"
 
-    convertItemAtom n Newline = JekyllText $ jtext (indent n) ++ "<br/>"
+    convertItemAtom n Newline = JekyllText $ "<br/>\n" ++ (jtext . indent) (n + 1)
 
     convertTitle x = JekyllText x
 
