@@ -64,7 +64,7 @@ instance CVConvertible LatexText where
     makeHeader cv = LatexText $  
            "\\documentclass[12pt]{article}\n"
         ++ "\\usepackage{booktabs}\n"
-        ++ "\\usepackage{hyperref}\n"
+        ++ "\\usepackage[colorlinks = true, urlcolor = blue]{hyperref}\n"
         ++ "\\usepackage[a4paper, total={6in, 8in}, margin=0.5in]{geometry}\n\n"
         ++ "\\begin{document}\n"
         ++ "\\begin{center}\n"

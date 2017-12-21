@@ -10,9 +10,14 @@
 
 <topic> Portfolio 
 <item> 
-    <topic> Detailed Portfolio 
+    <topic> GitHub Profile 
     <item> <hyperlink>https://github.com/MatthewMcGonagle<url>
                       https://github.com/MatthewMcGonagle</hyperlink> 
+    </topic>
+    
+    <topic> Detailed Portfolio
+    <item> <hyperlink>https://matthewmcgonagle.github.io/cv/<url>
+                      https://matthewmcgonagle.github.io/cv/ </hyperlink>
     </topic>
     
     <topic> CVWriter 
