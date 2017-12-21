@@ -1,0 +1,10 @@
+*.swp
+*.swo
+*.aux
+*.log
+*.out
+.stack-work/
+Setup.hs
+*.pdf
+*.tex
+*.html
