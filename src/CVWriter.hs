@@ -71,8 +71,8 @@ instance CVConvertible LatexText where
         ++ "\\textbf{\\Large " ++ cvTitle cv ++ "}\n"
         ++ "\\end{center}\n\n"
 
-    beginTable 0 = LatexText $ "\\noindent\\begin{tabular}{ll}\n"
-    beginTable n = LatexText $ text (indent n) ++ "\\begin{tabular}{@{}lp{8cm}@{}}\n"
+    beginTable 0 = LatexText "\\noindent\\begin{tabular}{ll}\n"
+    beginTable _ = LatexText "\\begin{tabular}{@{}lp{8cm}@{}}\n"
 
     endTable n = LatexText $ text (indent n) ++ "\\end{tabular}\n"
 
@@ -184,26 +184,30 @@ lTag name = do
 rTag :: String -> Prim.Parsec [Char] st String
 rTag name = lTag $ "/" ++ name 
 
+skipFormatting :: Prim.Parsec String st String
+skipFormatting = concat `fmap` sepEndBy1 (many1 $ noneOf "<\n\t") (many1 $ oneOf "\n\t")
+
 italicAtom :: Prim.Parsec String st ItemAtom
 italicAtom = do
              lTag "italic"
-             text <- try (many1 $ noneOf "<") <?> "text to italicize"
+             text <- try skipFormatting <?> "text to italicize"
              try (rTag "italic") <?> "rTag italic" 
              spaces
              return $ Italic text
 
 regularAtom :: Prim.Parsec String st ItemAtom
 regularAtom = do
-              text <- try (many1 $ noneOf "<") <?> "regular text"
+              --text <- try (many1 $ noneOf "<") <?> "regular text"
+              text <- try skipFormatting <?> "regular text other than \"<\" or \"\\n\""
               return $ JustText text
 
 hyperlinkAtom :: Prim.Parsec String st ItemAtom
 hyperlinkAtom = do
                 lTag "hyperlink"
-                label <- try (many1 $ noneOf "<") <?> "hyperlink label" 
+                label <- try skipFormatting <?> "hyperlink label" 
                 lTag "url"
                 spaces
-                url <- try (many1 $ noneOf "<") <?> "hyperlink url"
+                url <- try skipFormatting <?> "hyperlink url"
                 spaces
                 rTag "hyperlink"
                 spaces
@@ -220,8 +224,7 @@ atoms = do
         let atom =     try italicAtom
                    <|> try hyperlinkAtom
                    <|> try newlineAtom
-                   <|> try regularAtom
-                   <?> "atom"
+                   <|> regularAtom
         atomlist <- many1 $ atom 
         return $ Atoms atomlist 
  
@@ -237,21 +240,20 @@ topicItem = do
 titleBlock :: Prim.Parsec [Char] st String
 titleBlock = do
              lTag "title"
-             title <- many $ noneOf "<"
+             title <-skipFormatting  
              rTag "title"
              return title
 
 topic :: Prim.Parsec [Char] st Topic 
 topic = do
         lTag "topic"
-        topicTitle <- many1 $ noneOf "<"
-        rTag "topic"
+        topicTitle <-skipFormatting  
         spaces
         lTag "item"
         spaces
         item <- topicItem 
         spaces
-        rTag "item"
+        rTag "topic"
         return $ Topic {title = topicTitle, item = item}
 
 topicList :: Prim.Parsec [Char] st [Topic]
