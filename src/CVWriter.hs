@@ -14,53 +14,79 @@ import qualified Text.Parsec.Prim as Prim
 import Text.Parsec.Combinator
 import qualified Control.Monad.State as Ctl 
 
-
-data ItemAtom =  JustText String 
-               | Italic String 
-               | Hyperlink { hyperlabel :: String, url :: String }
-               | Newline
-               deriving (Show)
-
-data Item = Atoms [ItemAtom] | NestedTopics [Topic]
+-- | Holds primitive output pieces.
+data ItemAtom 
+    =  JustText String -- ^ For regular text. 
+    | Italic String -- ^ Italicized text. 
+    -- | Hyperlink label and url strings. 
+    | Hyperlink { hyperlabel :: String -- ^ Text to attach hyperlink to.
+                , url :: String -- ^ The url address for the hyperlink.
+                }
+    | Newline -- ^ Newline for output rendering (final html and pdf). Not formatting inside source files. 
     deriving (Show)
 
-data Topic =   Topic {title :: String, item :: Item}
+-- | Holds item associated to a topic. Can either be a list of atoms to print, or a list of subtopics.
+data Item 
+    = Atoms [ItemAtom] -- ^ List of atoms making up a single item.
+    | NestedTopics [Topic] -- ^ A list of subtopics.
     deriving (Show)
 
-data CV = CV {topics :: [Topic], cvTitle :: String}
+-- | A topic is effectively a row of a table/subtable. It has a title and a single item. 
+data Topic = 
+    Topic { title :: String -- ^ Title goes in the first column.
+          , item :: Item -- ^ The item goes in the second column.
+          }
     deriving (Show)
 
+-- | The parts that make up the entire CV.
+data CV = 
+    CV { topics :: [Topic] -- ^ The list of topics in body table of CV.
+       , cvTitle :: String -- ^ The title of the CV.
+       }
+    deriving (Show)
+
+{- | 
+   For formatting and printing purposes, we will keep track of the current nesting level, which
+   should be a non-negative integer. 
+-}
 type NestLevel = Int
 
+-- | Class of types for which an instance of CV may be converted into. 
 class CVConvertible a where
-    emptyCol :: a
-    indent :: NestLevel -> a
-    makeHeader :: CV -> a
-    beginTable :: NestLevel -> a -- Latex needs special characters for sub-table formatting.
-    endTable :: NestLevel -> a
-    makeRow :: NestLevel -> a -> a -> a
-    convertItemAtom :: NestLevel -> ItemAtom -> a
-    convertTitle :: String -> a
-    topicSeparator :: NestLevel -> a
-    endDoc :: a
-    paragraph :: a -> a
+    emptyCol :: a -- ^ Represents an empty column.
+    indent :: NestLevel -> a -- ^ Indents amount based on current nested topic level.
+    makeHeader :: CV -> a -- ^ Makes header based on information inside CV.
+    beginTable :: NestLevel -> a -- ^ Beginning of table based on current nested topic level. 
+    endTable :: NestLevel -> a -- ^ Ending of table based on current nested topic level. 
+    makeRow :: NestLevel -> a -> a -> a -- ^ Make a row based on current nested topic level.
+    convertItemAtom :: NestLevel -> ItemAtom -> a -- ^ Convert an atom of info into output based on nesting level.
+    convertTitle :: String -> a -- ^ Convert CV title.
+    topicSeparator :: NestLevel -> a -- ^ Something to separate topics based on nesting level.
+    endDoc :: a -- ^ End of the document.
+    paragraph :: a -> a -- ^ Wrap stuff inside a paragraph format.
 
 ------------------------------     
 -- Latex Conversion 
 ------------------------------
 
-data LatexText = LatexText {text :: String}
+-- | Type representing strings for Latex code.
+data LatexText = 
+    LatexText { text :: String -- ^ The text for Latex code.
+              }
 
+-- | LatexText is a monoid simply inherited from wrapping a String. 
 instance Monoid LatexText where
-    mempty = LatexText ""
-    x `mappend` y = LatexText $ (text x) ++ (text y) 
+    mempty = LatexText "" -- ^ Empty Latex string.
+    x `mappend` y = LatexText $ (text x) ++ (text y) -- ^ Simply String ++. 
 
+-- | Basic elements of converting CV to Latex code.
 instance CVConvertible LatexText where
 
-    emptyCol = LatexText "     "
+    emptyCol = LatexText $ replicate 4 ' ' -- ^ Simply empty spaces. 
 
-    indent n = LatexText $ replicate (4 * (n + 1)) ' '
+    indent n = LatexText $ replicate (4 * (n + 1)) ' ' -- ^ Just use a certain number of empty spaces.
 
+    -- | Header includes document class, packages to use, and the title of the CV.
     makeHeader cv = LatexText $  
            "\\documentclass[12pt]{article}\n"
         ++ "\\usepackage{booktabs}\n"
@@ -71,32 +97,45 @@ instance CVConvertible LatexText where
         ++ "\\textbf{\\Large " ++ cvTitle cv ++ "}\n"
         ++ "\\end{center}\n\n"
 
+    -- | For no nesting, make sure to include no indentation. Also just use two left justified columns.
     beginTable 0 = LatexText "\\noindent\\begin{tabular}{ll}\n"
+    
+    -- | For nested tables, use a left justified column and a paragraph column.
     beginTable _ = LatexText "\\begin{tabular}{@{}lp{8cm}@{}}\n"
 
+    -- | The ending of a table is always the same.
     endTable n = LatexText $ text (indent n) ++ "\\end{tabular}\n"
 
+    -- | For no nesting, the first column is put in bold face.
     makeRow 0 x y = LatexText $
         text (indent 0) ++ "\\textbf{" ++ text x ++ "} & " ++ text y ++ "\\\\\n\n"
+    -- | For nesting, both columns are treated as nothing special. 
     makeRow n x y = LatexText $
         text (indent n) ++ text x ++ " & " ++ text y ++ "\\\\\n\n"
 
+    -- | Just rewraps string.
     convertItemAtom _ (JustText x) = LatexText $ x
-
+    
+    -- | Wraps text in \textit Latex macro.
     convertItemAtom _ (Italic x) =  LatexText $ "\\textit{" ++ x ++ "}"
 
+    -- | Uses the \href Latex macro from the hyperref Latex package.
     convertItemAtom _ (Hyperlink {hyperlabel = label, url = url}) = LatexText $
            "\\href{" ++ url ++ "}{" ++ label ++ "}"
     
+    -- | Use a tabular \newline (note this isn't the "\\" newline).
     convertItemAtom n Newline = LatexText $ "\\newline\n" ++ (text . indent) ( n + 1 )
 
+    -- | Just rewrap String.
     convertTitle x = LatexText x
 
-    topicSeparator 0 = LatexText "\\midrule\n"
+    -- | Use \midrule in all cases. 
     topicSeparator n = LatexText $ text (indent n) ++ "\\midrule\n"
 
+    -- | Simple end of document in Latex.
     endDoc = LatexText $ "\\end{document}\n"
 
+    -- | Paragraph is equivalent to the identity for Latex.
     paragraph x = x
 
 
