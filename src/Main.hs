@@ -2,9 +2,6 @@ module Main where
 
 import System.IO
 import CVWriter
-import Text.Parsec.Prim
-import Text.Parsec.Combinator
-import Text.ParserCombinators.Parsec
 
 main :: IO ()
 main = do
