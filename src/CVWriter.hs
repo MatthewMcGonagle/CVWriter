@@ -1,7 +1,6 @@
 module CVWriter 
 ( topicItem
-, myParse
-, myParseTest
+, parseCV 
 , CV
 , Topic
 , LatexText (text)
@@ -172,14 +171,18 @@ instance CVConvertible JekyllText where
     -- | Nested level only affects the indentation level.  
     beginTable n = JekyllText $ jtext (indent n) ++ "<table>\n"
 
+    -- | Nested level only affects the indentation level.
     endTable n = JekyllText $ jtext (indent n) ++ "</table>\n"
 
+    -- | For nested level 0, the first column is inside table header tags.
     makeRow 0 x y = JekyllText $ 
            indent0 ++ "<tr>\n"
         ++ indent0 ++ "<th>" ++ jtext x ++ "</th>\n"
         ++ indent0 ++ "<td>" ++ jtext y ++ "</td>\n"
         ++ indent0 ++ "</tr>\n\n"
         where indent0 = jtext $ indent 0 
+
+    -- | For higher nested levels, all columns are put inside table data tags.
     makeRow n x y = JekyllText $ 
            indentn ++ "<tr>\n"
         ++ indentn ++ "<td>" ++ jtext x ++ "</td>\n"
@@ -187,52 +190,76 @@ instance CVConvertible JekyllText where
         ++ indentn ++ "</tr>\n\n"
         where indentn = jtext $ indent n 
 
+    -- | Simply rewrap the string inside a JekyllText type.
     convertItemAtom _ (JustText x) = JekyllText $ x
 
+    -- | Put the text inside italic tags.
     convertItemAtom _ (Italic x) =  JekyllText $ "<i>" ++ x ++ "</i>"
 
+    -- | Appropriately add the label and url using the <a href = "url"> label </a> tags.
     convertItemAtom _ (Hyperlink {hyperlabel = label, url = url}) = JekyllText $
            "<a href = \"" ++ url ++ "\">" ++ label ++ "</a>"
 
+    {- | Rendered html will contain a newline in this column using the <br/> tag. Nesting level
+         is simply for making the appropriate indentation.
+    -}
     convertItemAtom n Newline = JekyllText $ "<br/>\n" ++ (jtext . indent) (n + 1)
 
+    -- | Simply wraps String inside the JekyllText type.
     convertTitle x = JekyllText x
 
+    -- | Topic Separator is a horizontal line with width given by the current table/sub-table width.
     topicSeparator n = JekyllText $ 
            indentn ++ "<tr>\n"
         ++ indentn ++ "<td colspan = \"100%\"; style = \"border-bottom: 1px solid black\"></td>\n"
         ++ indentn ++ "</tr>\n"
         where indentn = jtext $ indent n 
 
+    {- | The end of the document is simply a link to pdf version. No need for </html> tag since output is
+         meant to be processed by Jekyll.
+    -}
     endDoc = JekyllText  "<h2> <a href = \"{{site . url}}/cv/MatthewMcGonagleCV.pdf\">Click here</a> if you wish to view my CV as a pdf.</h2>\n"
 
+    -- | Put the string inside <p> tags.
     paragraph x = JekyllText $ "<p>" ++ jtext x ++ "</p>"
 
 ------------------------------
 -- *.cv Text Parsers
 ------------------------------
 
+-- | A simple '<' character.
 lBracket :: Prim.Parsec [Char] st Char 
 lBracket = char '<'
 
+-- | A simple '>' character.
 rBracket :: Prim.Parsec [Char] st Char
 rBracket = char '>'
 
+-- | HTML style beginning tag; lTag name is the string "<" ++ name ++ ">".
 lTag :: String -> Prim.Parsec [Char] st String
-lTag name = do
-       lBracket
-       spaces
-       try (string name) <?> "string \"" ++ name ++ "\"" 
-       spaces
-       try rBracket <?> "> for lTag " ++ name 
-       return name
+lTag name  -- ^ String inside brackets.
+    = do
+      lBracket
+      spaces
+      try (string name) <?> "string \"" ++ name ++ "\"" 
+      spaces
+      try rBracket <?> "> for lTag " ++ name 
+      return name
 
+-- | HTML style ending tag; rTag name is the string "</" ++ name ++ ">".
 rTag :: String -> Prim.Parsec [Char] st String
-rTag name = lTag $ "/" ++ name 
+rTag name -- ^ String inside brackets and after '/'. 
+    = lTag $ "/" ++ name 
 
+{- | All of the text from the current position until the next use of '<'. Skips over 
+     the formatting characters '\n' and '\t'.
+-}
 skipFormatting :: Prim.Parsec String st String
 skipFormatting = concat `fmap` sepEndBy1 (many1 $ noneOf "<\n\t") (many1 $ oneOf "\n\t")
 
+{- | A group of text that is meant to be italicized. Skips over formatting characters
+     '\n' and '\t'. Data should be arranged as "<italic>italicized text</italic>".
+-}
 italicAtom :: Prim.Parsec String st ItemAtom
 italicAtom = do
              lTag "italic"
@@ -241,12 +268,17 @@ italicAtom = do
              spaces
              return $ Italic text
 
+{- | Regular text that doesn't include "<". Skips over any use of the formatting characters
+     '\n' and '\t'. This doesn't need any tags.
+-}
 regularAtom :: Prim.Parsec String st ItemAtom
 regularAtom = do
-              --text <- try (many1 $ noneOf "<") <?> "regular text"
               text <- try skipFormatting <?> "regular text other than \"<\" or \"\\n\""
               return $ JustText text
 
+{- | A hyperlink label followed by the url. Skips over formatting characters '\n' and '\t'.
+     The data should be arranged as "<hyperlink>label<url>url</hyperlink>". 
+-}
 hyperlinkAtom :: Prim.Parsec String st ItemAtom
 hyperlinkAtom = do
                 lTag "hyperlink"
@@ -259,12 +291,14 @@ hyperlinkAtom = do
                 spaces
                 return $ Hyperlink {hyperlabel = label, url = url}
 
+-- | Tag that marks use of newline in rendering. It is simply "<newline>".
 newlineAtom :: Prim.Parsec String st ItemAtom
 newlineAtom = do
               lTag "newline"
               spaces
               return Newline
 
+-- | Parses a group of atoms.
 atoms :: Prim.Parsec String st Item
 atoms = do
         let atom =     try italicAtom
@@ -273,16 +307,20 @@ atoms = do
                    <|> regularAtom
         atomlist <- many1 $ atom 
         return $ Atoms atomlist 
- 
--- Remember to parse subtopic before parsing atoms. 
+
+-- | Parse the contents of item. This is either a grouping of subtopics or a group of atoms. 
 topicItem :: Prim.Parsec [Char] st Item
 topicItem = do
             let subtopics = do 
                             subs <- endBy1 (try topic) spaces
                             return $ NestedTopics subs 
+            -- Remember to parse subtopic before parsing atoms. 
             item <- try subtopics <|> atoms 
             return item 
 
+{- | Parse the title of the CV. Skips formatting characters '\n' and '\t'. Data should
+     be in the format "<title>Title</title>".
+-}
 titleBlock :: Prim.Parsec [Char] st String
 titleBlock = do
              lTag "title"
@@ -290,6 +328,9 @@ titleBlock = do
              rTag "title"
              return title
 
+{- | Parse a topic and its item. Skips formatting characters '\n' and '\t'. Data should be
+     in the format "<topic>TopicName<item>Atoms Or Subtopics</topic>".
+-}
 topic :: Prim.Parsec [Char] st Topic 
 topic = do
         lTag "topic"
@@ -302,9 +343,16 @@ topic = do
         rTag "topic"
         return $ Topic {title = topicTitle, item = item}
 
+-- | A list of topics separated by spaces.
 topicList :: Prim.Parsec [Char] st [Topic]
 topicList = endBy topic spaces 
             
+{- | A CV file. It should be in the format 
+     "<title>CV Title (most likely your name)</title> 
+      <topic>Name 1 <item> Atoms or Subtopics </topic>
+      <topic> Name 2 <item> Atoms or Subtopics </topic>
+      ....
+-}
 cvfile :: Prim.Parsec String st CV
 cvfile = do
          spaces
@@ -315,11 +363,7 @@ cvfile = do
          eof
          return $ CV {topics = topics, cvTitle = cvTitle}
          
-myParse = parse cvfile "source name"
-myParseTest = parseTest cvfile 
-
-latexEnd :: String
-latexEnd = "\\end{document}\n"
+parseCV = parse cvfile "source name"
 
 ------------------------------
 -- General Formatting Stuff
