@@ -362,24 +362,31 @@ cvfile = do
          eof
          return $ CV {topics = topics, cvTitle = cvTitle}
          
-parseCV = parse cvfile "source name"
+parseCV = parse cvfile "source .cv file"
 
 -------------------------------------
 -- Generic CV converter
 -------------------------------------
 
+{- | For a type where primitive CV converter functions are defined and is a monoid,
+     turn a CV type into this type.
+-}
 convertCV :: (CVConvertible a, Monoid a) => CV -> a  
-convertCV cv = 
-              makeHeader cv 
-    `mappend` body 
-    `mappend` endDoc
-    where body = fst $ topicsWIndent
-          topicsWIndent = Ctl.runState (convertTopicList $ topics cv) 0
+convertCV cv -- ^ The CV to convert.
+    = 
+                 makeHeader cv 
+       `mappend` body 
+       `mappend` endDoc
+       where body = fst $ topicsWIndent
+             topicsWIndent = Ctl.runState (convertTopicList $ topics cv) 0
 
+-- | Convert a list of topics. We need to include the state of the current nesting level.
 convertTopicList :: (CVConvertible a, Monoid a) => [Topic] -> Ctl.State NestLevel a
 
+-- | Empty list just goes to mempty.
 convertTopicList [] = return mempty
 
+-- | For a list of one object we just convert the single topic and put it in a table.
 convertTopicList [t] = 
     do 
     nestLevel <- Ctl.get
@@ -388,6 +395,9 @@ convertTopicList [t] =
              `mappend` t' 
              `mappend` endTable nestLevel
 
+{- | For a list of two or more objects, we just do a simple conversion for the first topic.
+     For the other topics, we first put in a topic separator before converting.
+-}
 convertTopicList (t:ts) = 
     do
     nestLevel <- Ctl.get
@@ -403,19 +413,28 @@ convertTopicList (t:ts) =
              `mappend` mconcat ts' 
              `mappend` endTable nestLevel
 
+-- | We convert the title and item of the topic. 
 convertTopic :: (CVConvertible a, Monoid a) => Topic -> Ctl.State NestLevel a
 convertTopic x = do
                  nestLevel <- Ctl.get 
                  x' <- convertItem $ item x
                  return $ makeRow nestLevel (convertTitle $ title x) x' 
 
+-- | Convert the item of a topic. 
+  
 convertItem :: (CVConvertible a, Monoid a) => Item -> Ctl.State NestLevel a
+{- | In the case that the item is just a collection of atoms, then we just  
+     combine them.
+-}
 convertItem (Atoms atoms) = 
     do
     nestLevel <- Ctl.get 
     let atoms' = map (convertItemAtom nestLevel) atoms
     return $ mconcat atoms'
 
+{- In the case that the item is a list of subtopics, we need to increase
+   the nesting level state before converting the subtopics.
+-}
 convertItem (NestedTopics ts) = 
     do
     nestedLevel <- Ctl.get
