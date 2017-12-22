@@ -2,10 +2,9 @@ module CVWriter
 ( topicItem
 , parseCV 
 , CV
-, Topic
 , LatexText (text)
 , JekyllText (jtext)
-, convertCV'
+, convertCV
 ) where
 
 import Text.ParserCombinators.Parsec
@@ -377,8 +376,8 @@ myTab n = concat $ replicate n singleTab
 -- Generic CV converter
 -------------------------------------
 
-convertCV' :: (CVConvertible a, Monoid a) => CV -> a  
-convertCV' cv = 
+convertCV :: (CVConvertible a, Monoid a) => CV -> a  
+convertCV cv = 
               makeHeader cv 
     `mappend` body 
     `mappend` endDoc

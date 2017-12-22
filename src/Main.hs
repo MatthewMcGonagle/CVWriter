@@ -13,8 +13,8 @@ main = do
     contents <- hGetContents handle
     putStrLn "\nFile loaded.\n"
     let cvinfo = parseCV contents 
-        latexString = text . convertCV' <$> cvinfo 
-        markdownString = jtext . convertCV' <$> cvinfo 
+        latexString = text . convertCV <$> cvinfo 
+        markdownString = jtext . convertCV <$> cvinfo 
     print latexString
     case latexString of (Right str) -> writeFile "MatthewMcGonagleCV.tex" str
                         (Left err) -> return () 
