@@ -52,14 +52,14 @@ type NestLevel = Int
 -- | Class of types for which an instance of CV may be converted into. 
 class CVConvertible a where
     emptyCol :: a -- ^ Represents an empty column.
-    indent :: NestLevel -> a -- ^ Indents amount based on current nested topic level.
+    indent :: Ctl.State NestLevel a -- ^ Indents amount based on current nested topic level.
     makeHeader :: CV -> a -- ^ Makes header based on information inside CV.
-    beginTable :: NestLevel -> a -- ^ Beginning of table based on current nested topic level. 
-    endTable :: NestLevel -> a -- ^ Ending of table based on current nested topic level. 
-    makeRow :: NestLevel -> a -> a -> a -- ^ Make a row based on current nested topic level.
-    convertItemAtom :: NestLevel -> ItemAtom -> a -- ^ Convert an atom of info into output based on nesting level.
+    beginTable :: Ctl.State NestLevel a -- ^ Beginning of table based on current nested topic level. 
+    endTable :: Ctl.State NestLevel a -- ^ Ending of table based on current nested topic level. 
+    makeRow :: a -> a -> Ctl.State NestLevel a -- ^ Make a row based on current nested topic level.
+    convertItemAtom :: ItemAtom -> Ctl.State NestLevel a -- ^ Convert an atom of info into output based on nesting level.
     convertTitle :: String -> a -- ^ Convert CV title.
-    topicSeparator :: NestLevel -> a -- ^ Something to separate topics based on nesting level.
+    topicSeparator :: Ctl.State NestLevel a -- ^ Something to separate topics based on nesting level.
     endDoc :: a -- ^ End of the document.
     paragraph :: a -> a -- ^ Wrap stuff inside a paragraph format.
 
@@ -82,7 +82,12 @@ instance CVConvertible LatexText where
 
     emptyCol = LatexText $ replicate 4 ' ' -- ^ Simply empty spaces. 
 
-    indent n = LatexText $ replicate (4 * (n + 1)) ' ' -- ^ Just use a certain number of empty spaces.
+    -- | Number of spaces depends on nesting level.
+    indent = 
+        do
+        nestLevel <- Ctl.get
+        let spacing = replicate (4 * (nestLevel + 1)) ' ' 
+        return $ LatexText spacing
 
     -- | Header includes document class, packages to use, and the title of the CV.
     makeHeader cv = LatexText $  
@@ -95,40 +100,62 @@ instance CVConvertible LatexText where
         ++ "\\textbf{\\Large " ++ cvTitle cv ++ "}\n"
         ++ "\\end{center}\n\n"
 
-    -- | For no nesting, make sure to include no indentation. Also just use two left justified columns.
-    beginTable 0 = LatexText "\\noindent\\begin{tabular}{ll}\n"
-    
-    -- | For nested tables, use a left justified column and a paragraph column.
-    beginTable _ = LatexText "\\begin{tabular}{@{}lp{8cm}@{}}\n"
+    {- | For no nesting, make sure to include no indentation. Also just use two left justified columns.
+         For nesting, use a left justified column and a paragraph column.
+    -}
+    beginTable = 
+        do
+        nestLevel <- Ctl.get
+        case nestLevel of 0 -> return $ LatexText "\\noindent\\begin{tabular}{ll}\n"
+                          otherwise -> return $ LatexText "\\begin{tabular}{@{}lp{8cm}@{}}\n"
 
-    -- | The ending of a table is always the same.
-    endTable n = LatexText $ text (indent n) ++ "\\end{tabular}\n"
+    -- | Use the nesting level to determine the indentation. 
+    endTable = 
+        do
+        indentation <- indent 
+        let endTableText =  indentation `mappend` LatexText "\\end{tabular}\n"
+        return endTableText
 
     -- | For no nesting, the first column is put in bold face.
-    makeRow 0 x y = LatexText $
-        text (indent 0) ++ "\\textbf{" ++ text x ++ "} & " ++ text y ++ "\\\\\n\n"
-    -- | For nesting, both columns are treated as nothing special. 
-    makeRow n x y = LatexText $
-        text (indent n) ++ text x ++ " & " ++ text y ++ "\\\\\n\n"
+    makeRow x y = 
+        do
+        indentation <- indent
+        nestLevel <- Ctl.get
+        let col1 = case nestLevel of
+                        0 -> LatexText $ "\\textbf{" ++ text x ++ "}" 
+                        otherwise -> x
+            endOfRow = LatexText "\\\\\n"
+            colSep = LatexText " & "
+            rowText = indentation 
+                      `mappend` col1 `mappend` colSep 
+                      `mappend` y `mappend` endOfRow 
+        return rowText
 
     -- | Just rewraps string.
-    convertItemAtom _ (JustText x) = LatexText $ x
+    convertItemAtom (JustText x) = return (LatexText x)
     
     -- | Wraps text in \textit Latex macro.
-    convertItemAtom _ (Italic x) =  LatexText $ "\\textit{" ++ x ++ "}"
+    convertItemAtom (Italic x) =  return $ LatexText ("\\textit{" ++ x ++ "}")
 
     -- | Uses the \href Latex macro from the hyperref Latex package.
-    convertItemAtom _ (Hyperlink {hyperlabel = label, url = url}) = LatexText $
-           "\\href{" ++ url ++ "}{" ++ label ++ "}"
+    convertItemAtom (Hyperlink {hyperlabel = label, url = url}) 
+        = return  $ LatexText ("\\href{" ++ url ++ "}{" ++ label ++ "}")
     
     -- | Use a tabular \newline (note this isn't the "\\" newline).
-    convertItemAtom n Newline = LatexText $ "\\newline\n" ++ (text . indent) ( n + 1 )
+    convertItemAtom Newline = 
+        do
+        indentation <- indent 
+        let newLineText = LatexText "\\newline\n" `mappend` indentation 
+        return newLineText
 
     -- | Just rewrap String.
     convertTitle x = LatexText x
 
     -- | Use \midrule in all cases. 
-    topicSeparator n = LatexText $ text (indent n) ++ "\\midrule\n"
+    topicSeparator = 
+        do
+        indentation <- indent
+        return $ indentation `mappend` LatexText "\\midrule\n"
 
     -- | Simple end of document in Latex.
     endDoc = LatexText $ "\\end{document}\n"
@@ -156,7 +183,12 @@ instance CVConvertible JekyllText where
     emptyCol = JekyllText ""
 
     -- | Use appropriate number of ' ' characters to indent. 
-    indent n = JekyllText $ replicate (4 * (n + 1)) ' '
+    indent = 
+        do
+        nestLevel <- Ctl.get
+        let nSpaces = 4 * (nestLevel + 1)
+            spaces = replicate nSpaces ' '
+        return $ JekyllText spaces
   
     -- | Header contain's information for Jekyll followed by Header tags. 
     makeHeader cv = JekyllText $ 
@@ -168,51 +200,67 @@ instance CVConvertible JekyllText where
         ++ "<h1>" ++ cvTitle cv ++ "</h1>\n"
 
     -- | Nested level only affects the indentation level.  
-    beginTable n = JekyllText $ jtext (indent n) ++ "<table>\n"
+    beginTable = 
+        do
+        indentation <- indent
+        return $ indentation `mappend` JekyllText "<table>\n"
 
     -- | Nested level only affects the indentation level.
-    endTable n = JekyllText $ jtext (indent n) ++ "</table>\n"
+    endTable = 
+        do
+        indentation <- indent
+        return $ indentation `mappend` JekyllText "</table>\n"
 
-    -- | For nested level 0, the first column is inside table header tags.
-    makeRow 0 x y = JekyllText $ 
-           indent0 ++ "<tr>\n"
-        ++ indent0 ++ "<th>" ++ jtext x ++ "</th>\n"
-        ++ indent0 ++ "<td>" ++ jtext y ++ "</td>\n"
-        ++ indent0 ++ "</tr>\n\n"
-        where indent0 = jtext $ indent 0 
+    {- | For nested level 0, the first column is inside table header <th> tags. For higher nesting
+         levels, both columns are wrapped with <td> tags.
+    -}
 
-    -- | For higher nested levels, all columns are put inside table data tags.
-    makeRow n x y = JekyllText $ 
-           indentn ++ "<tr>\n"
-        ++ indentn ++ "<td>" ++ jtext x ++ "</td>\n"
-        ++ indentn ++ "<td>" ++ jtext y ++ "</td>\n"
-        ++ indentn ++ "</tr>\n\n"
-        where indentn = jtext $ indent n 
+    makeRow x y = 
+        do
+        indentation <- indent 
+        nestLevel <- Ctl.get
+        let col1 = case nestLevel of 
+                            0 -> JekyllText "<th>" `mappend` x `mappend` JekyllText "</th>\n"
+                            otherwise -> JekyllText "<td>" `mappend` x `mappend` JekyllText "</td>\n"
+                                
+            col2 = JekyllText "<td>" `mappend` y `mappend` JekyllText "</td>\n"
+            rowText = indentation `mappend` JekyllText "<tr>\n"
+                      `mappend` indentation `mappend` col1
+                      `mappend` indentation `mappend` col2
+                      `mappend` indentation `mappend` JekyllText "</tr>\n"
+        return rowText
 
     -- | Simply rewrap the string inside a JekyllText type.
-    convertItemAtom _ (JustText x) = JekyllText $ x
+    convertItemAtom (JustText x) = return $ JekyllText x
 
     -- | Put the text inside italic tags.
-    convertItemAtom _ (Italic x) =  JekyllText $ "<i>" ++ x ++ "</i>"
+    convertItemAtom (Italic x) =  return $ JekyllText ("<i>" ++ x ++ "</i>")
 
     -- | Appropriately add the label and url using the <a href = "url"> label </a> tags.
-    convertItemAtom _ (Hyperlink {hyperlabel = label, url = url}) = JekyllText $
-           "<a href = \"" ++ url ++ "\">" ++ label ++ "</a>"
+    convertItemAtom (Hyperlink {hyperlabel = label, url = url}) = 
+        return $ JekyllText ("<a href = \"" ++ url ++ "\">" ++ label ++ "</a>")
 
     {- | Rendered html will contain a newline in this column using the <br/> tag. Nesting level
          is simply for making the appropriate indentation.
     -}
-    convertItemAtom n Newline = JekyllText $ "<br/>\n" ++ (jtext . indent) (n + 1)
+    convertItemAtom Newline = 
+        do
+        indentation <- indent
+        return $ JekyllText "<br/>\n" `mappend` indentation 
 
     -- | Simply wraps String inside the JekyllText type.
     convertTitle x = JekyllText x
 
     -- | Topic Separator is a horizontal line with width given by the current table/sub-table width.
-    topicSeparator n = JekyllText $ 
-           indentn ++ "<tr>\n"
-        ++ indentn ++ "<td colspan = \"100%\"; style = \"border-bottom: 1px solid black\"></td>\n"
-        ++ indentn ++ "</tr>\n"
-        where indentn = jtext $ indent n 
+    topicSeparator = 
+        do
+        indentation <- indent
+        let lineText = JekyllText "<td colspan = \"100%\"; style = \"border-bottom: 1px solid black\"></td>\n"
+            sepText =  
+                indentation `mappend` JekyllText "<tr>\n"
+                `mappend` indentation `mappend` lineText 
+                `mappend` indentation `mappend` JekyllText "</tr>\n"
+        return sepText 
 
     {- | The end of the document is simply a link to pdf version. No need for </html> tag since output is
          meant to be processed by Jekyll.
