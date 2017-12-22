@@ -143,26 +143,33 @@ instance CVConvertible LatexText where
 -- Jekyll Conversion 
 ------------------------------
 
+-- | Wraps a String in a type for Jekyll compatible HTML code.
 data  JekyllText = JekyllText {jtext :: String}
 
+-- | JekyllText is a monoid since it is a wrapper for String and String is a monoid.
 instance Monoid JekyllText where
     mempty = JekyllText ""
     x `mappend` y = JekyllText $ jtext x ++ jtext y
 
+-- | A CV may be converted into Jekyll compatible HTML.
 instance CVConvertible JekyllText where
 
+    -- | For HTML, an empty column doesn't require using any text, so it is an empty string.
     emptyCol = JekyllText ""
 
+    -- | Use appropriate number of ' ' characters to indent. 
     indent n = JekyllText $ replicate (4 * (n + 1)) ' '
-   
+  
+    -- | Header contain's information for Jekyll followed by Header tags. 
     makeHeader cv = JekyllText $ 
            "---\n"
         ++ "layout: default\n"
-        ++ "title: Matthew McGonagle's CV\n"
+        ++ "title: " ++ cvTitle cv ++ "'s CV\n"
         ++ "---\n\n" 
         ++ "<h2> <a href = \"{{site . url}}/cv/MatthewMcGonagleCV.pdf\">Click here</a> if you wish to view my CV as a pdf.</h2>\n"
         ++ "<h1>" ++ cvTitle cv ++ "</h1>\n"
 
+    -- | Nested level only affects the indentation level.  
     beginTable n = JekyllText $ jtext (indent n) ++ "<table>\n"
 
     endTable n = JekyllText $ jtext (indent n) ++ "</table>\n"
