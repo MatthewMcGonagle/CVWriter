@@ -364,14 +364,6 @@ cvfile = do
          
 parseCV = parse cvfile "source name"
 
-------------------------------
--- General Formatting Stuff
-------------------------------
-
-myTab :: Int -> String
-myTab n = concat $ replicate n singleTab
-    where singleTab = "    "
-
 -------------------------------------
 -- Generic CV converter
 -------------------------------------
@@ -411,18 +403,11 @@ convertTopicList (t:ts) =
              `mappend` mconcat ts' 
              `mappend` endTable nestLevel
 
--- convertTopic :: (CVConvertible a, Monoid a) => Topic -> a
--- convertTopic x = makeRow (convertTitle $ title x) (convertItem $ item x) 
-
 convertTopic :: (CVConvertible a, Monoid a) => Topic -> Ctl.State NestLevel a
 convertTopic x = do
                  nestLevel <- Ctl.get 
                  x' <- convertItem $ item x
                  return $ makeRow nestLevel (convertTitle $ title x) x' 
-
--- convertItem :: (CVConvertible a, Monoid a) => Item -> a
--- convertItem (Atoms atoms) = mconcat $ map convertItemAtom atoms 
--- convertItem (NestedTopics ts) = convertSubtopics ts 
 
 convertItem :: (CVConvertible a, Monoid a) => Item -> Ctl.State NestLevel a
 convertItem (Atoms atoms) = 
