@@ -49,3 +49,11 @@ a newline for the final output, then use the `<newline>` tag.
 If you wish for text to be italicized, then put it between the `<italic>` tag and the `</italic>` tag.
 
 For a hyperlink, put the label as it appears to the user between the `<hyperlink>` tag and the `<url>` tag. Then put the actual url between the `<url>` tag and the `</hyperlink>` tag. 
+
+# Converting a .cv File
+
+An example of how to do this is provided in `src/Main.hs` inside this repository. After the `.cv` file is opened, we parse its contents into the data type `CV` using the function `parseCV :: String -> Either ParseError CV`. The parsing uses the standard Parsec library, so it keeps track of Errors using the `Either` monad.
+
+Then we can use the function `convertCV :: CV -> LatexText` and `convertCV :: CV -> JekyllText` to turn the `CV` type into Latex text and Jekyll text, respectively.
+
+
