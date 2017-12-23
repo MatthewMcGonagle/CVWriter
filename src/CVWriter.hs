@@ -219,14 +219,17 @@ instance CVConvertible JekyllText where
         do
         indentation <- indent 
         nestLevel <- Ctl.get
+        Ctl.put $ nestLevel + 1
+        extraIndent <- indent
+        Ctl.put $ nestLevel
         let col1 = case nestLevel of 
                             0 -> JekyllText "<th>" `mappend` x `mappend` JekyllText "</th>\n"
                             otherwise -> JekyllText "<td>" `mappend` x `mappend` JekyllText "</td>\n"
                                 
             col2 = JekyllText "<td>" `mappend` y `mappend` JekyllText "</td>\n"
             rowText = indentation `mappend` JekyllText "<tr>\n"
-                      `mappend` indentation `mappend` col1
-                      `mappend` indentation `mappend` col2
+                      `mappend` extraIndent `mappend` col1
+                      `mappend` extraIndent `mappend` col2
                       `mappend` indentation `mappend` JekyllText "</tr>\n"
         return rowText
 
@@ -437,36 +440,38 @@ convertTopicList [] = return mempty
 -- | For a list of one object we just convert the single topic and put it in a table.
 convertTopicList [t] = 
     do 
-    nestLevel <- Ctl.get
+    beginTableText <- beginTable
     t' <- convertTopic t
-    return $ beginTable nestLevel 
+    endTableText <- endTable
+    return $ beginTableText
              `mappend` t' 
-             `mappend` endTable nestLevel
+             `mappend` endTableText
 
 {- | For a list of two or more objects, we just do a simple conversion for the first topic.
      For the other topics, we first put in a topic separator before converting.
 -}
 convertTopicList (t:ts) = 
     do
+    beginTableText <- beginTable
     nestLevel <- Ctl.get
     t' <- convertTopic t
     let convertTailTopic x = 
             do
-            nestLevel' <- Ctl.get
+            sep <- topicSeparator
             x' <- convertTopic x
-            return $ topicSeparator nestLevel' `mappend` x' 
+            return $ sep `mappend` x' 
     ts' <- mapM convertTailTopic ts 
-    return $ beginTable nestLevel
+    endTableText <- endTable
+    return $ beginTableText
              `mappend` t' 
              `mappend` mconcat ts' 
-             `mappend` endTable nestLevel
+             `mappend` endTableText
 
 -- | We convert the title and item of the topic. 
 convertTopic :: (CVConvertible a, Monoid a) => Topic -> Ctl.State NestLevel a
 convertTopic x = do
-                 nestLevel <- Ctl.get 
                  x' <- convertItem $ item x
-                 return $ makeRow nestLevel (convertTitle $ title x) x' 
+                 makeRow (convertTitle $ title x) x'
 
 -- | Convert the item of a topic. 
   
@@ -476,8 +481,7 @@ convertItem :: (CVConvertible a, Monoid a) => Item -> Ctl.State NestLevel a
 -}
 convertItem (Atoms atoms) = 
     do
-    nestLevel <- Ctl.get 
-    let atoms' = map (convertItemAtom nestLevel) atoms
+    atoms' <- mapM convertItemAtom atoms
     return $ mconcat atoms'
 
 {- In the case that the item is a list of subtopics, we need to increase
@@ -489,4 +493,4 @@ convertItem (NestedTopics ts) =
     Ctl.put $ nestedLevel + 1
     ts' <- convertTopicList ts 
     Ctl.put nestedLevel
-    return $ ts'
+    return ts'
