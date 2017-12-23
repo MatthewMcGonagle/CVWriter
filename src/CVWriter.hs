@@ -1,6 +1,5 @@
 module CVWriter 
-( topicItem
-, parseCV 
+( parseCV 
 , CV
 , LatexText (text)
 , JekyllText (jtext)
@@ -75,7 +74,7 @@ data LatexText =
 -- | LatexText is a monoid simply inherited from wrapping a String. 
 instance Monoid LatexText where
     mempty = LatexText "" -- ^ Empty Latex string.
-    x `mappend` y = LatexText $ (text x) ++ (text y) -- ^ Simply String ++. 
+    x `mappend` y = LatexText $ (text x) `mappend` (text y) -- ^ Simply String `mappend`. 
 
 -- | Basic elements of converting CV to Latex code.
 instance CVConvertible LatexText where
@@ -109,14 +108,16 @@ instance CVConvertible LatexText where
         case nestLevel of 0 -> return $ LatexText "\\noindent\\begin{tabular}{ll}\n"
                           otherwise -> return $ LatexText "\\begin{tabular}{@{}lp{8cm}@{}}\n"
 
-    -- | Use the nesting level to determine the indentation. 
+    -- | Just use the nesting level to determine the indentation. 
     endTable = 
         do
         indentation <- indent 
         let endTableText =  indentation `mappend` LatexText "\\end{tabular}\n"
         return endTableText
 
-    -- | For no nesting, the first column is put in bold face.
+    {- | For no nesting, the first column is put in bold face. For higher nesting,
+         we just use regular text in both columns.
+    -}
     makeRow x y = 
         do
         indentation <- indent
@@ -141,7 +142,7 @@ instance CVConvertible LatexText where
     convertItemAtom (Hyperlink {hyperlabel = label, url = url}) 
         = return  $ LatexText ("\\href{" ++ url ++ "}{" ++ label ++ "}")
     
-    -- | Use a tabular \newline (note this isn't the "\\" newline).
+    -- | Use a tabular \newline (note this isn't the "\\" newline). Use the nesting level for indentation.
     convertItemAtom Newline = 
         do
         indentation <- indent 
@@ -151,7 +152,7 @@ instance CVConvertible LatexText where
     -- | Just rewrap String.
     convertTitle x = LatexText x
 
-    -- | Use \midrule in all cases. 
+    -- | Use \midrule in all cases. Use the nesting level for indentation. 
     topicSeparator = 
         do
         indentation <- indent
@@ -182,7 +183,7 @@ instance CVConvertible JekyllText where
     -- | For HTML, an empty column doesn't require using any text, so it is an empty string.
     emptyCol = JekyllText ""
 
-    -- | Use appropriate number of ' ' characters to indent. 
+    -- | Use appropriate number of ' ' characters to indent based on the nesting level. 
     indent = 
         do
         nestLevel <- Ctl.get
@@ -199,11 +200,8 @@ instance CVConvertible JekyllText where
         ++ "<h2> <a href = \"{{site . url}}/cv/MatthewMcGonagleCV.pdf\">Click here</a> if you wish to view my CV as a pdf.</h2>\n"
         ++ "<h1>" ++ cvTitle cv ++ "</h1>\n"
 
-    -- | Nested level only affects the indentation level.  
-    beginTable = 
-        do
-        indentation <- indent
-        return $ indentation `mappend` JekyllText "<table>\n"
+    -- | Don't use the nesting level at all. 
+    beginTable = return $ JekyllText " <table>\n"
 
     -- | Nested level only affects the indentation level.
     endTable = 
@@ -214,7 +212,6 @@ instance CVConvertible JekyllText where
     {- | For nested level 0, the first column is inside table header <th> tags. For higher nesting
          levels, both columns are wrapped with <td> tags.
     -}
-
     makeRow x y = 
         do
         indentation <- indent 
