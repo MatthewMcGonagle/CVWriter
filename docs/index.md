@@ -1,96 +1,66 @@
 ---
-
+layout: default
+title: CVWriter
 ---
+Welcome to the project pages for CVWriter. CVWriter is a small library whose purpose is to provide functions to turn an XML-like source file of CV information into two formats:
 
-<!Doctype html>
-<html>
-<header>
-    <title> CVWriter </title>
-    <link rel = "stylesheet" type = "text/css" href = "{{site . url}}/css/styles.css">
-    <link rel = "stylesheet" type = "text/css" href = "{{site . url}}/css/syntax.css">
+* A Jekyll compatible .html file. This is ready to be turned into an HTML version of a CV that can be used by Jekyll to add to a website.
+* A Latex compatible .tex file that is ready to be turned into a .pdf file by simply processing it with `pdflatex`.
 
-</header>
+This allows one to create two versions of a CV from a single .cv file. An example file is given by the file `info.cv` in this repository.
+        
+## Format of .cv Files 
 
-<body>
+The format of a .cv (as seen in <code>info.cv</code>) is as follows:
 
-    <nav>
-        <a href = "https://github.com/MatthewMcGonagle/CVWriter"> GitHub Repository</a>
-    </nav>
+```
+<title> Your name </title>
 
-    <div>
-        <h1> CVWriter </h1>
-        <p> Welcome to the project pages for CVWriter. </p> 
-        <p> CVWriter is a small library whose purpose is to provide functions to turn an XML-like source file of CV information into two formats:
-        <ol> 
-            <li> A Jekyll compatible .html file. This is ready to be turned into an HTML version of a CV that can be used by Jekyll to add to a website.
-            <li>A Latex compatible .tex file that is ready to be turned into a .pdf file by simply processing it with `pdflatex`.
-        
-        </ol>
-        This allows one to create two versions of a CV from a single .cv file. An example file is given by the file `info.cv` in this repository. </p>
-        
-        <h2> Format of .cv Files </h2>
-        
-        <p> The format of a .cv (as seen in <code>info.cv</code>) is as follows:</p>
-        
-        <pre> 
-        &lttitle&gt Your name &lt/title&gt
-        
-        &lttopic&gt
-        Topic 1
-        &ltitem&gt
-        Put something about topic 1 here.
-        &lt/topic&gt
-        
-        &lttopic&gt
-        Topic 2
-        &ltitem&gt
-            &lttopic&gt 
-            Subtopic 2a
-            &ltitem&gt
-            Put something about Subtopic 2a here.
-            &lt/topic&gt
-        
-            &lttopic&gt
-            Subtopic 2b
-            &ltitem&gt
-            Put something about Subtopic 2b here. &ltnewline&gt
-            Put this &ltitalic&gt italicized text &lt/italic&gt on a new line. &ltnewline&gt
-            On this new line, the user will see &lthyperlink&gt this text &lturl&gt myUrl &lt/hyperlink&gt 
-                    as a link to the url myUrl.
-            &lt/topic&gt
-        &lt/topic&gt
-        </pre>
-        </p>
-        <p> Each topic is put into the first column of the overall table. 
-        The information after <code>&ltitem&gt</code> is put into the second column. 
-        The second column is capable of having a sub-table that is captured by using subtopics.
-        Subtopics are placed after the <code>&ltitem&gt</code> tag of the parent topic. </p>
-        
-        <p> The use of tabs and newlines is up to you. 
-            The parser ignores white space after tags (including newlines and tabs). 
-            Furthermore, the newlines are always ignored; so use them freely for formatting. 
-            If you wish to put some text on a newline for the final output, then use the 
-            <code>&ltnewline&gt</code> tag. 
-        </p>
-        
-        <p> If you wish for text to be italicized, then put it between the <code>&ltitalic&gt</code> tag and the <code>&lt/italic&gt</code> tag.
-        
-        <p>For a hyperlink, put the label as it appears to the user between the 
-            <code>&lthyperlink&gt</code> tag and the <code>&lturl&gt</code> tag. 
-        Then put the actual url between the <code>&lturl&gt</code> tag and the <code>&lt/hyperlink&gt</code> tag. 
-        </p>
-        
-        <h2>Converting a .cv File</h2>
-        
-        <p> An example of how to do this is provided in <code>src/Main.hs</code> inside this repository. After the <code>.cv</code> file is opened, we parse its contents into the data type <code>CV</code> using the function <code>parseCV :: String -> Either ParseError CV</code>. The parsing uses the standard Parsec library, so it keeps track of Errors using the <code>Either</code> monad.
-        
-        Then we can use the function <code>convertCV :: CV -> LatexText</code> and <code>convertCV :: CV -> JekyllText</code> to turn the <code>CV</code> type into Latex text and Jekyll text, respectively.
-        
-    </div>
+<topic>
+Topic 1
+<item>
+Put something about topic 1 here.
+</topic>
 
-    <footer>
-        <a href = "https://github.com/MatthewMcGonagle/CVWriter">GitHub Repository</a>    
-    </footer>
+<topic>
+Topic 2
+<item>
+    <topic> 
+    Subtopic 2a
+    <item>
+    Put something about Subtopic 2a here.
+    </topic>
 
-</body>
-</html>
+    <topic>
+    Subtopic 2b
+    <item>
+    Put something about Subtopic 2b here. <newline>
+    Put this <italic> italicized text </italic> on a new line. <newline>
+    On this new line, the user will see <hyperlink> this text <url> myUrl </hyperlink> 
+            as a link to the url myUrl.
+    </topic>
+</topic>
+```
+Each topic is put into the first column of the overall table. 
+The information after `<item>` is put into the second column. 
+The second column is capable of having a sub-table that is captured by using subtopics.
+Subtopics are placed after the `<item>` tag of the parent topic. 
+
+ The use of tabs and newlines is up to you. 
+The parser ignores white space after tags (including newlines and tabs). 
+Furthermore, the newlines are always ignored; so use them freely for formatting. 
+If you wish to put some text on a newline for the final output, then use the 
+`<newline>` tag. 
+
+ If you wish for text to be italicized, then put it between the `<italic>` tag and the `</italic>` tag.
+
+For a hyperlink, put the label as it appears to the user between the 
+    `<hyperlink>` tag and the `<url>` tag. 
+Then put the actual url between the `<url>` tag and the `</hyperlink>` tag. 
+
+## Converting a .cv File
+
+An example of how to do this is provided in `src/Main.hs` inside this repository. After the `.cv` file is opened, we parse its contents into the data type `CV` using the function `parseCV :: String -> Either ParseError CV`. The parsing uses the standard Parsec library, so it keeps track of Errors using the `Either` monad.
+        
+Then we can use the function `convertCV :: CV -> LatexText` and `convertCV :: CV -> JekyllText` to turn the `CV` type into Latex text and Jekyll text, respectively.
+
