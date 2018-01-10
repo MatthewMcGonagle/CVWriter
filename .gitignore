@@ -9,6 +9,7 @@ Setup.hs
 *.tex
 *.html
 !/docs/*.html
+!/docs/_layouts/*.html
 /docs/Gemfile
 /docs/Gemfile.lock
 /docs/_site/
