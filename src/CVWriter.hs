@@ -92,6 +92,7 @@ instance CVConvertible LatexText where
     makeHeader cv = LatexText $  
            "\\documentclass[12pt]{article}\n"
         ++ "\\usepackage{booktabs}\n"
+        ++ "\\usepackage{longtable}\n"
         ++ "\\usepackage[colorlinks = true, urlcolor = blue]{hyperref}\n"
         ++ "\\usepackage[a4paper, total={6in, 8in}, margin=0.5in]{geometry}\n\n"
         ++ "\\begin{document}\n"
@@ -105,14 +106,17 @@ instance CVConvertible LatexText where
     beginTable = 
         do
         nestLevel <- Ctl.get
-        case nestLevel of 0 -> return $ LatexText "\\noindent\\begin{tabular}{ll}\n"
-                          otherwise -> return $ LatexText "\\begin{tabular}{@{}lp{8cm}@{}}\n"
+        case nestLevel of 0 -> return $ LatexText "\\noindent\\begin{longtable}{ll}\n"
+                          otherwise -> return $ LatexText "\\begin{tabular}{@{}lp{10cm}@{}}\n"
 
     -- | Just use the nesting level to determine the indentation. 
     endTable = 
         do
+        nestLevel <- Ctl.get
         indentation <- indent 
-        let endTableText =  indentation `mappend` LatexText "\\end{tabular}\n"
+        let tableType = case nestLevel of 0 -> "longtable"
+                                          otherwise -> "tabular"
+            endTableText =  indentation `mappend` LatexText ("\\end{" ++ tableType ++ "}\n")
         return endTableText
 
     {- | For no nesting, the first column is put in bold face. For higher nesting,
