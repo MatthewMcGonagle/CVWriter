@@ -10,8 +10,8 @@ main = do
 
     args <- getArgs
     let (directory, filename) = case args of 
-                                     [] -> ("", "info.cv")
-                                     [name] -> ("", name)
+                                     [] -> ("./", "info.cv")
+                                     [name] -> ("./", name)
                                      [dir, name] -> (dir, name)
     handle <- openFile (directory ++ filename) ReadMode
     contents <- hGetContents handle
