@@ -29,7 +29,12 @@ main = do
     case latexString of (Right str) -> do
                                        writeFile (directory ++ "MatthewMcGonagleCV.tex") str
                                        putStrLn "\nRunning pdflatex.\n"
-                                       createProcess ( proc "pdflatex" ["MatthewMcGonagleCV"])
+                                       createProcess ( proc "pdflatex" 
+                                                             [ "-output-directory"
+                                                             , directory
+                                                             , directory ++ "MatthewMcGonagleCV"
+                                                             ]
+                                                     )
                                        putStrLn "\nHit Return to Continue"
                                        return ()
                         (Left err) -> return () 
