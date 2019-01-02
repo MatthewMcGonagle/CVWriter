@@ -71,6 +71,11 @@ data LatexText =
     LatexText { text :: String -- ^ The text for Latex code.
               }
 
+convertLatex :: String -> String
+convertLatex x = foldr (\c acc -> (convertChar c) ++ acc) "" x
+    where convertChar '_' = "\\_"
+          convertChar y = [y]
+
 -- | LatexText is a monoid simply inherited from wrapping a String. 
 instance Monoid LatexText where
     mempty = LatexText "" -- ^ Empty Latex string.
@@ -126,9 +131,10 @@ instance CVConvertible LatexText where
         do
         indentation <- indent
         nestLevel <- Ctl.get
-        let col1 = case nestLevel of
-                        0 -> LatexText $ "\\textbf{" ++ text x ++ "}" 
-                        otherwise -> x
+        let x' = LatexText $ convertLatex (text x) -- only convert x, y will be converted later.
+            col1 = case nestLevel of
+                        0 -> LatexText $ "\\textbf{" ++ text x' ++ "}" 
+                        otherwise -> x'
             endOfRow = LatexText "\\\\\n"
             colSep = LatexText " & "
             rowText = indentation 
@@ -137,14 +143,21 @@ instance CVConvertible LatexText where
         return rowText
 
     -- | Just rewraps string.
-    convertItemAtom (JustText x) = return (LatexText x)
+    convertItemAtom (JustText x) = let x' = convertLatex x
+                                   in
+                                   return $ LatexText x' 
     
     -- | Wraps text in \textit Latex macro.
-    convertItemAtom (Italic x) =  return $ LatexText ("\\textit{" ++ x ++ "}")
+    convertItemAtom (Italic x) =  let x' = convertLatex x
+                                  in
+                                  return $ LatexText ("\\textit{" ++ x' ++ "}")
 
     -- | Uses the \href Latex macro from the hyperref Latex package.
     convertItemAtom (Hyperlink {hyperlabel = label, url = url}) 
-        = return  $ LatexText ("\\href{" ++ url ++ "}{" ++ label ++ "}")
+        = let label' = convertLatex label
+              url' = convertLatex url
+          in
+          return  $ LatexText ("\\href{" ++ url' ++ "}{" ++ label' ++ "}")
     
     -- | Use a tabular \newline (note this isn't the "\\" newline). Use the nesting level for indentation.
     convertItemAtom Newline = 
