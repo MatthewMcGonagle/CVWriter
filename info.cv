@@ -1,56 +1,80 @@
 <title>Matthew McGonagle</title>
 
+<topic> Profiles 
+<item>
+
+    <topic> Webpage
+    <item> <hyperlink> matthewmcgonagle.github.io/<url>
+                       https://matthewmcgonagle.github.io/</hyperlink>
+    </topic>
+
+    <topic> GitHub Profile 
+    <item> <hyperlink>github.com/MatthewMcGonagle<url>
+                      https://github.com/MatthewMcGonagle</hyperlink> 
+    </topic>
+
+    <topic> LinkedIn
+    <item> <hyperlink> linkedin.com/in/matthew-mcgonagle-856a12166<url>
+                       https://www.linkedin.com/in/matthew-mcgonagle-856a12166</hyperlink> 
+    </topic>
+
+    <topic> LeetCode Profile
+    <item> <hyperlink> leetcode.com/mcgonagle/ <url>
+                       https://leetcode.com/mcgonagle/</hyperlink>
+    </topic>
+
+</topic>
+
 <topic> Technical Skills 
 <item> C++, Python, Haskell, LaTeX, Sci-Kit Learn, TensorFlow, Jupyter Notebooks 
 </topic>
 
 <topic> Tools 
-<item> Vim, Git, GNU Debugger, Jekyll, Inskcape, GNU IMP 
+<item> Vim, Git, Microsoft Visual Studio, GNU Debugger, Jekyll, Inskcape, GNU IMP 
 </topic>
 
 <topic> Portfolio 
 <item> 
-    <topic> GitHub Profile 
-    <item> <hyperlink>https://github.com/MatthewMcGonagle<url>
-                      https://github.com/MatthewMcGonagle</hyperlink> 
-    </topic>
     
     <topic> Detailed Portfolio
-    <item> <hyperlink>https://matthewmcgonagle.github.io/cv/<url>
-                      https://matthewmcgonagle.github.io/cv/ </hyperlink>
+    <item> <hyperlink>matthewmcgonagle.github.io/portfolio/<url>
+                      https://matthewmcgonagle.github.io/portfolio/</hyperlink>
     </topic>
-    
+
+    <topic> penguinV
+    <item> C++ <newline>
+           <hyperlink>github.com/ihhub/penguinV<url>
+                      https://github.com/ihhub/penguinV</hyperlink> <newline> 
+           Contributor to image processing library focusing on ease of use and
+           heterogeneous systems. Used SWIG to create Python wrappers, and refactored
+           classes to reduce code duplication.
+    </topic>
+
+    <topic> TSP_PictureMaker
+    <item> Python <newline>
+           <hyperlink>github.com/MatthewMcGonagle/ TSP_PictureMaker<url>
+                      https://github.com/MatthewMcGonagle/TSP_PictureMaker</hyperlink> <newline>
+           Approximate the Travelling Salesman Problem to draw an image using a single curve with a small 
+           number of self-intersections.
+    </topic>
+
     <topic> CVWriter 
     <item> Haskell <newline>
-           <hyperlink>https://github.com/MatthewMcGonagle/ CVWriter<url>
-                      https://github.com/MatthewMcGonagle/CVWriter </hyperlink> <newline> 
-            Takes XML style sheet with info for CV and outputs it to two formats: <newline> 
+           <hyperlink>github.com/MatthewMcGonagle/CVWriter<url>
+                      https://github.com/MatthewMcGonagle/CVWriter</hyperlink> <newline> 
+            Translate XML-like style sheet for CV to two formats: <newline> 
             1. A LaTeX .tex file to be converted to pdf. <newline> 
             2. A Jekyll compatible .html file. 
     </topic>
 
-    <topic> Quadratic Field Extension 
-    <item> C++ <newline>
-           <hyperlink>https://github.com/MatthewMcGonagle/ QuadraticFieldExtension<url>
-                      https://github.com/MatthewMcGonagle/QuadraticFieldExtension </hyperlink><newline>
-           Library to allow infinite precision arithmetic for numbers made of any number of square roots, such as sqrt(1 + sqrt(2)).
-    </topic>
-
-    <topic> Hilbert Draw 
-    <item> Python <newline>
-           <hyperlink>https://github.com/MatthewMcGonagle /HilbertDraw<url>
-                      https://github.com/MatthewMcGonagle/HilbertDraw</hyperlink> <newline>
-           Library to take a picture, and draw it using Hilbert fractal-like curves.
-    </topic>
-
     <topic> Blog 
-    <item> <hyperlink>https://matthewmcgonagle.github.io/blog/<url>
+    <item> <hyperlink>matthewmcgonagle.github.io/blog/<url>
                       https://matthewmcgonagle.github.io/blog/</hyperlink><newline>
            Noteworthy Posts: <newline> 
+           13 Sep 2018 - <italic> Cost-Complexity Pruning A Decision Tree Classifier </italic><newline>
            30 Oct 2017 - <italic> Picture Effects in Tensor Flow</italic><newline>
            21 Nov 2017 - <italic> Random Traversal of A Binary Tree </italic> <newline>
-           08 Dec 2017 - <italic> A Pitfall of Errors in Parsec Package for Haskell </italic><newline>
-           03 Nov 2017 - <italic> Drawing a Binary Tree Using Gradient Descent and a Potential Function </italic>
+           08 Dec 2017 - <italic> A Pitfall of Errors in Parsec Package for Haskell </italic>
     </topic>
       
 </topic>
