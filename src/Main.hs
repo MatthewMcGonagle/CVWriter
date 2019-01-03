@@ -2,7 +2,6 @@ module Main where
 
 import System.IO
 import System.Environment
-import System.Process
 import CVWriter
 
 main :: IO ()
@@ -26,16 +25,6 @@ main = do
                            (Left err) -> return () 
 
     putStrLn "\nMaking .tex file\n"
-    case latexString of (Right str) -> do
-                                       writeFile (directory ++ "MatthewMcGonagleCV.tex") str
-                                       putStrLn "\nRunning pdflatex.\n"
-                                       createProcess ( proc "pdflatex" 
-                                                             [ "-output-directory"
-                                                             , directory
-                                                             , directory ++ "MatthewMcGonagleCV"
-                                                             ]
-                                                     )
-                                       putStrLn "\nHit Return to Continue"
-                                       return ()
+    case latexString of (Right str) -> writeFile (directory ++ "MatthewMcGonagleCV.tex") str
                         (Left err) -> return () 
 
