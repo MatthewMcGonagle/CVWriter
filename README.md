@@ -56,4 +56,40 @@ An example of how to do this is provided in `src/Main.hs` inside this repository
 
 Then we can use the function `convertCV :: CV -> LatexText` and `convertCV :: CV -> JekyllText` to turn the `CV` type into Latex text and Jekyll text, respectively.
 
+# Using Scripts to Convert .cv Files in Different Directories
 
+You could have the case that you wish to have different versions of your CV, for example a public CV that doesn't
+list your contact information and a private CV that does. Here we will describe how to set up a script to do
+so with this project. Suppose your directories are set-up in the following manner (we will be creating a bash script `CVS/convertCVs.sh` later).
+
+```
+- CVWriter
+    - stack.yaml
+- CVs
+    - Private
+        - info.cv
+    - Public
+        - info.cv
+    - convertCVs.sh
+```
+
+The contents of `CVs/convertCVs.sh` will be the following
+
+```
+targetYaml=../CVWriter/stack.yaml
+for dir in ./Private/ ./Public/
+do
+    stack --stack-yaml ${targetYaml} exec CVWriter ${dir} info.cv 
+    pdflatex -output-directory ${dir} ${dir}/*.tex 
+done
+``` 
+
+Then we can properly run `CVWriter` and `pdflatex` on each `info.cv` file by running the following from
+the `CVs` directory:
+
+```
+sh convertCVs.sh
+```
+
+These instructions are of course for using Bash scripts, but the idea can be transferred to any appropriate
+scripting language for your system.
